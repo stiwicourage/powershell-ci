@@ -1,0 +1,24 @@
+name: Run Tests
+
+on:
+  push:
+    branches-ignore:
+      - main
+  pull_request:
+    branches:
+      - main
+      - develop
+  schedule:
+    - cron: '0 3 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  tests:
+    uses: stiwicourage/powershell-ci/.github/workflows/tests.yml@v1
+    with:
+      changelog-files: ./CHANGELOG.md ./RELEASE_NOTE.md
+    secrets: inherit

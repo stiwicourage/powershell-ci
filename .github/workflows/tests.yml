@@ -1,0 +1,176 @@
+name: Tests (reusable)
+
+on:
+  workflow_call:
+    inputs:
+      runner:
+        description: Runner label for all jobs.
+        type: string
+        default: ubuntu-latest
+      install-command:
+        description: PowerShell command that installs CI modules. Empty skips the step.
+        type: string
+        default: ./scripts/build/ci/Install-CiPowerShellModules.ps1
+      test-command:
+        description: PowerShell command that builds, tests and writes artifacts.
+        type: string
+        default: ./scripts/build/ci/Invoke-NovaModuleToolsCI.ps1 -OutputDirectory ./artifacts
+      changelog-files:
+        description: Space separated changelog files validated with Test-KeepAChangelogFile. Empty skips the step.
+        type: string
+        default: ./CHANGELOG.md
+      artifact-name:
+        description: Name of the uploaded CI artifact bundle.
+        type: string
+        default: ci-artifacts
+      artifact-paths:
+        description: Newline separated paths uploaded as CI artifacts.
+        type: string
+        default: |
+          artifacts/
+          dist/
+      coverage-files:
+        description: Glob matching coverage reports checked by CodeScene.
+        type: string
+        default: '**/coverage.xml'
+      codescene-enabled:
+        description: Run CodeScene coverage gates and analysis.
+        type: boolean
+        default: true
+      codescene-analysis-branch:
+        description: Branch whose pushes trigger CodeScene analysis.
+        type: string
+        default: develop
+      codescene-analysis-command:
+        description: PowerShell command that uploads coverage and triggers analysis.
+        type: string
+        default: ./scripts/build/ci/Invoke-CodeSceneAnalysis.ps1 -UploadCoverage -TriggerAnalysis
+    secrets:
+      CS_ACCESS_TOKEN:
+        description: CodeScene access token. Required when codescene-enabled is true.
+        required: false
+
+permissions:
+  contents: read
+  actions: read
+
+defaults:
+  run:
+    shell: pwsh
+
+jobs:
+  test-and-coverage:
+    runs-on: ${{ inputs.runner }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install required CI PowerShell modules
+        if: ${{ inputs.install-command != '' }}
+        run: ${{ inputs.install-command }}
+
+      - name: Run CI tests and coverage
+        run: ${{ inputs.test-command }}
+
+      - name: Validate changelog files with Test-KeepAChangelogFile
+        if: ${{ inputs.changelog-files != '' }}
+        env:
+          CHANGELOG_FILES: ${{ inputs.changelog-files }}
+        run: |
+          foreach ($path in $env:CHANGELOG_FILES -split '\s+' | Where-Object { $_ }) {
+            $result = Test-KeepAChangelogFile -Path $path
+            if (-not $result.IsValid) {
+              $errors = $result.Errors -join [Environment]::NewLine
+              throw "Validation failed for $path$([Environment]::NewLine)$errors"
+            }
+          }
+
+      - name: Upload CI artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.artifact-name }}
+          if-no-files-found: warn
+          path: ${{ inputs.artifact-paths }}
+
+      - name: Generate report
+        if: always()
+        run: |
+          $reportLines = @('## CI Output Files')
+          foreach ($directory in @('./artifacts', './dist')) {
+            $reportLines += @('', "### $directory", '')
+            $files = Get-ChildItem -Path $directory -Recurse -File -ErrorAction SilentlyContinue | Sort-Object FullName
+            if ($files) {
+              $reportLines += '| Name | Directory |'
+              $reportLines += '| --- | --- |'
+              $reportLines += $files | ForEach-Object {
+                "| $(('' + $_.Name).Replace('|', '\|')) | $(('' + $_.Directory).Replace('|', '\|')) |"
+              }
+            }
+            else {
+              $reportLines += "No files found in ``$directory``."
+            }
+          }
+          $report = $reportLines -join [Environment]::NewLine
+          Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value $report
+          Write-Output $report
+
+  codescene-coverage-gates:
+    runs-on: ${{ inputs.runner }}
+    needs: test-and-coverage
+    if: ${{ inputs.codescene-enabled && needs.test-and-coverage.result == 'success' && github.event_name == 'pull_request' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download CI artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ inputs.artifact-name }}
+          path: coverage/
+
+      - name: Check coverage gates in CodeScene
+        uses: stiwicourage/powershell-ci/actions/check-coverage@v1
+        with:
+          access-token: ${{ secrets.CS_ACCESS_TOKEN }}
+          project-url: ${{ format('{0}/v2/projects/{1}', vars.CS_URL, vars.CS_PROJECT_ID) }}
+          coverage-files: ${{ inputs.coverage-files }}
+
+  codescene-analysis:
+    runs-on: ${{ inputs.runner }}
+    needs: test-and-coverage
+    if: >-
+      ${{
+        inputs.codescene-enabled &&
+        needs.test-and-coverage.result == 'success' &&
+        (github.event_name == 'workflow_dispatch' ||
+        (github.event_name == 'push' && github.ref_name == inputs.codescene-analysis-branch))
+      }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download CI artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ inputs.artifact-name }}
+          path: .
+
+      - name: Install CodeScene coverage CLI
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fsSL -o install-cs-coverage-tool.sh https://downloads.codescene.io/enterprise/cli/install-cs-coverage-tool.sh
+          bash install-cs-coverage-tool.sh -y
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Upload coverage to CodeScene and trigger analysis
+        env:
+          CS_URL: ${{ vars.CS_URL }}
+          CS_PROJECT_ID: ${{ vars.CS_PROJECT_ID }}
+          CS_ACCESS_TOKEN: ${{ secrets.CS_ACCESS_TOKEN }}
+        run: ${{ inputs.codescene-analysis-command }}

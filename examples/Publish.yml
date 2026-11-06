@@ -1,0 +1,19 @@
+name: Publish Module
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+  publish:
+    uses: stiwicourage/powershell-ci/.github/workflows/publish.yml@v1
+    with:
+      release-continuous-integration: true
+    secrets: inherit

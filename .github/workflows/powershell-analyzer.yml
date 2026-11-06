@@ -1,0 +1,41 @@
+name: PSScriptAnalyzer (reusable)
+
+on:
+  workflow_call:
+    inputs:
+      path:
+        description: Path analyzed recursively.
+        type: string
+        default: ./
+      include-rules:
+        description: Quoted, comma separated rule names passed to the analyzer.
+        type: string
+        default: '"PSAvoidGlobalAliases", "PSAvoidUsingConvertToSecureStringWithPlainText"'
+
+permissions:
+  contents: read
+
+jobs:
+  analyze:
+    name: PSScriptAnalyzer
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+      actions: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run PSScriptAnalyzer
+        uses: microsoft/psscriptanalyzer-action@6b2948b1944407914a58661c49941824d149734f
+        with:
+          path: ${{ inputs.path }}
+          recurse: true
+          includeRule: ${{ inputs.include-rules }}
+          output: results.sarif
+
+      - name: Upload SARIF results
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: results.sarif
