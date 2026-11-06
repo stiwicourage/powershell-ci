@@ -42,9 +42,9 @@ on:
         type: string
         default: develop
       codescene-analysis-command:
-        description: PowerShell command that uploads coverage and triggers analysis.
+        description: Optional PowerShell command that replaces the shared codescene-analysis action.
         type: string
-        default: ./scripts/build/ci/Invoke-CodeSceneAnalysis.ps1 -UploadCoverage -TriggerAnalysis
+        default: ''
     secrets:
       CS_ACCESS_TOKEN:
         description: CodeScene access token. Required when codescene-enabled is true.
@@ -160,7 +160,16 @@ jobs:
           name: ${{ inputs.artifact-name }}
           path: .
 
-      - name: Install CodeScene coverage CLI
+      - name: Upload coverage to CodeScene and trigger analysis
+        if: ${{ inputs.codescene-analysis-command == '' }}
+        uses: stiwicourage/powershell-ci/actions/codescene-analysis@develop
+        with:
+          url: ${{ vars.CS_URL }}
+          project-id: ${{ vars.CS_PROJECT_ID }}
+          access-token: ${{ secrets.CS_ACCESS_TOKEN }}
+
+      - name: Install CodeScene coverage CLI (custom command)
+        if: ${{ inputs.codescene-analysis-command != '' }}
         shell: bash
         run: |
           set -euo pipefail
@@ -168,7 +177,9 @@ jobs:
           bash install-cs-coverage-tool.sh -y
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
 
-      - name: Upload coverage to CodeScene and trigger analysis
+      - name: Upload coverage to CodeScene and trigger analysis (custom command)
+        if: ${{ inputs.codescene-analysis-command != '' }}
+        shell: pwsh
         env:
           CS_URL: ${{ vars.CS_URL }}
           CS_PROJECT_ID: ${{ vars.CS_PROJECT_ID }}

@@ -1,0 +1,52 @@
+name: CodeScene analysis
+description: Upload coverage to CodeScene and trigger an analysis run.
+
+inputs:
+  coverage-path:
+    description: JaCoCo coverage file to upload. Defaults to artifacts/coverage.xml.
+    required: false
+    default: ''
+  upload-coverage:
+    description: Upload coverage to CodeScene.
+    required: false
+    default: 'true'
+  trigger-analysis:
+    description: Trigger a CodeScene analysis run.
+    required: false
+    default: 'true'
+  url:
+    description: CodeScene base URL.
+    required: true
+  project-id:
+    description: CodeScene project ID.
+    required: true
+  access-token:
+    description: CodeScene access token.
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Install CodeScene coverage CLI
+      shell: bash
+      run: |
+        set -euo pipefail
+        curl -fsSL -o install-cs-coverage-tool.sh https://downloads.codescene.io/enterprise/cli/install-cs-coverage-tool.sh
+        bash install-cs-coverage-tool.sh -y
+        echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+    - name: Upload coverage to CodeScene and trigger analysis
+      shell: pwsh
+      env:
+        CS_URL: ${{ inputs.url }}
+        CS_PROJECT_ID: ${{ inputs.project-id }}
+        CS_ACCESS_TOKEN: ${{ inputs.access-token }}
+        COVERAGE_PATH: ${{ inputs.coverage-path }}
+        UPLOAD_COVERAGE: ${{ inputs.upload-coverage }}
+        TRIGGER_ANALYSIS: ${{ inputs.trigger-analysis }}
+      run: |
+        $arguments = @{}
+        if ($env:COVERAGE_PATH) { $arguments.CoveragePath = $env:COVERAGE_PATH }
+        if ($env:UPLOAD_COVERAGE -eq 'true') { $arguments.UploadCoverage = $true }
+        if ($env:TRIGGER_ANALYSIS -eq 'true') { $arguments.TriggerAnalysis = $true }
+        & '${{ github.action_path }}/Invoke-CodeSceneAnalysis.ps1' @arguments

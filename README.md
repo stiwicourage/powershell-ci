@@ -9,6 +9,7 @@ The goal is one place to fix CI so projects stop drifting apart.
 | Path | Purpose |
 | --- | --- |
 | `actions/check-coverage` | CodeScene coverage gates |
+| `actions/codescene-analysis` | Upload coverage and trigger a CodeScene analysis (bundles the scripts) |
 | `actions/create-verified-commit` | Verified release/prerelease commit |
 | `actions/update-git-ref` | Move a branch to a commit |
 | `actions/create-annotated-tag` | Annotated release tag |
@@ -41,8 +42,10 @@ Callers must grant the permissions the reusable workflow needs
 ## What stays in each project
 
 The workflows run project-owned scripts through the `install-command`,
-`test-command` and `codescene-analysis-command` inputs, so the defaults match the
-current Nova layout (`./scripts/build/ci/...`). Project-specific scripts, for
+`test-command` inputs, so the defaults match the
+current Nova layout (`./scripts/build/ci/...`). CodeScene upload and analysis
+use the bundled `actions/codescene-analysis`; set `codescene-analysis-command`
+only to override it with a project script. Project-specific scripts, for
 example `Invoke-SemanticReleaseCI.ps1` or PSModuleUpdate's lane/gate scripts,
 remain in their repositories. Platform matrices such as GerberCore's
 native-credential matrix are also project-owned.
