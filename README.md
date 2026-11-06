@@ -26,12 +26,12 @@ in all six projects that had them.
 ## Using it
 
 A project keeps only a thin caller workflow that owns triggers, permissions and
-inputs. See `examples/`. Reference a released tag:
+inputs. See `examples/`. Reference a released tag (or `@develop` while testing):
 
 ```yaml
 jobs:
   tests:
-    uses: stiwicourage/powershell-ci/.github/workflows/tests.yml@v1
+    uses: stiwicourage/powershell-ci/.github/workflows/tests.yml@develop
     secrets: inherit
 ```
 
@@ -55,7 +55,10 @@ this repository is the next step; until then they are the main source of drift.
 
 ## Releasing
 
-Callers pin `@v1`. Because the workflows reference the actions as
-`stiwicourage/powershell-ci/actions/<name>@v1`, create the `v1` tag (and move it
-for compatible fixes) before the first caller uses a workflow. Use immutable
-`v1.x.y` tags for exact pinning.
+Versions follow Semantic Versioning with immutable tags (`v0.1.0`, ...). While
+the workflows are being validated they are `0.x` and callers reference
+`@develop`. The workflows reference the actions as
+`stiwicourage/powershell-ci/actions/<name>@<ref>`; when cutting a release, change
+those references (in `.github/workflows/`) from `@develop` to the new tag before
+tagging, and callers pin the same tag, for example `@v0.1.0`. Create `v1.0.0`
+and a floating `v1` only once the inputs and behavior are considered stable.

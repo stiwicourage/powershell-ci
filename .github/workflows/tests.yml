@@ -132,7 +132,7 @@ jobs:
           path: coverage/
 
       - name: Check coverage gates in CodeScene
-        uses: stiwicourage/powershell-ci/actions/check-coverage@v1
+        uses: stiwicourage/powershell-ci/actions/check-coverage@develop
         with:
           access-token: ${{ secrets.CS_ACCESS_TOKEN }}
           project-url: ${{ format('{0}/v2/projects/{1}', vars.CS_URL, vars.CS_PROJECT_ID) }}
