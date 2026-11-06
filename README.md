@@ -10,6 +10,7 @@ The goal is one place to fix CI so projects stop drifting apart.
 | --- | --- |
 | `actions/check-coverage` | CodeScene coverage gates |
 | `actions/codescene-analysis` | Upload coverage and trigger a CodeScene analysis (bundles the scripts) |
+| `actions/install-ps-modules` | Install PowerShell modules, registering PSGallery when the runner lacks it |
 | `actions/create-verified-commit` | Verified release/prerelease commit |
 | `actions/update-git-ref` | Move a branch to a commit |
 | `actions/create-annotated-tag` | Annotated release tag |
@@ -41,7 +42,9 @@ Callers must grant the permissions the reusable workflow needs
 
 ## What stays in each project
 
-The workflows run project-owned scripts through the `install-command`,
+The workflows install modules with the bundled `actions/install-ps-modules`
+(`install-modules` input; set `install-command` only to override it) and run
+project-owned scripts through the
 `test-command` inputs, so the defaults match the
 current Nova layout (`./scripts/build/ci/...`). CodeScene upload and analysis
 use the bundled `actions/codescene-analysis`; set `codescene-analysis-command`

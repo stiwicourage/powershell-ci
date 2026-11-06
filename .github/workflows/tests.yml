@@ -8,9 +8,13 @@ on:
         type: string
         default: ubuntu-latest
       install-command:
-        description: PowerShell command that installs CI modules. Empty skips the step.
+        description: PowerShell command that installs CI modules; replaces install-modules when set.
         type: string
-        default: ./scripts/build/ci/Install-CiPowerShellModules.ps1
+        default: ''
+      install-modules:
+        description: Space separated modules installed with the shared install-ps-modules action. Empty skips the step.
+        type: string
+        default: NovaModuleTools KeepAChangelog PSScriptAnalyzer
       test-command:
         description: PowerShell command that builds, tests and writes artifacts.
         type: string
@@ -66,6 +70,12 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Install required CI PowerShell modules
+        if: ${{ inputs.install-command == '' && inputs.install-modules != '' }}
+        uses: stiwicourage/powershell-ci/actions/install-ps-modules@develop
+        with:
+          modules: ${{ inputs.install-modules }}
+
+      - name: Install required CI PowerShell modules (custom command)
         if: ${{ inputs.install-command != '' }}
         run: ${{ inputs.install-command }}
 

@@ -1,0 +1,48 @@
+name: Install PowerShell modules
+description: Install PowerShell modules from a repository, registering PSGallery first when the runner has no registration.
+
+inputs:
+  modules:
+    description: Space or comma separated module names.
+    required: true
+  repository:
+    description: Repository to install from.
+    required: false
+    default: PSGallery
+  allow-prerelease:
+    description: Allow prerelease module versions.
+    required: false
+    default: 'true'
+
+runs:
+  using: composite
+  steps:
+    - shell: pwsh
+      env:
+        MODULES: ${{ inputs.modules }}
+        REPOSITORY: ${{ inputs.repository }}
+        ALLOW_PRERELEASE: ${{ inputs.allow-prerelease }}
+      run: |
+        $ErrorActionPreference = 'Stop'
+        if (-not (Get-PSRepository -Name $env:REPOSITORY -ErrorAction SilentlyContinue)) {
+          if ($env:REPOSITORY -ne 'PSGallery') {
+            throw "PowerShell repository '$($env:REPOSITORY)' is not registered."
+          }
+          Register-PSRepository -Default
+        }
+        Set-PSRepository -Name $env:REPOSITORY -InstallationPolicy Trusted
+
+        $installArguments = @{
+          Repository = $env:REPOSITORY
+          Scope = 'CurrentUser'
+          Force = $true
+          ErrorAction = 'Stop'
+        }
+        if ($env:ALLOW_PRERELEASE -eq 'true') { $installArguments.AllowPrerelease = $true }
+
+        foreach ($name in $env:MODULES -split '[\s,]+' | Where-Object { $_ }) {
+          Write-Output "Installing PowerShell module '$name'..."
+          Install-Module -Name $name @installArguments
+          $installed = Get-InstalledModule -Name $name | Sort-Object Version -Descending | Select-Object -First 1
+          Write-Output "Installed '$($installed.Name)' $($installed.Version) from '$($installed.Repository)'."
+        }
