@@ -16,9 +16,9 @@ on:
         type: string
         default: NovaModuleTools KeepAChangelog PSScriptAnalyzer
       test-command:
-        description: PowerShell command that builds, tests and writes artifacts.
+        description: PowerShell command that builds, tests and writes artifacts/coverage.xml.
         type: string
-        default: ./scripts/build/ci/Invoke-NovaModuleToolsCI.ps1 -OutputDirectory ./artifacts
+        default: Invoke-NovaBuild; Invoke-NovaTest
       changelog-files:
         description: Space separated changelog files validated with Test-KeepAChangelogFile. Empty skips the step.
         type: string

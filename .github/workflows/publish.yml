@@ -32,9 +32,9 @@ on:
         type: string
         default: Invoke-NovaBuild -ContinuousIntegration
       test-command:
-        description: PowerShell command that runs the built-module tests.
+        description: PowerShell command that runs the built-module tests. Use Test-NovaBuild for projects whose build-validation tests are self-contained.
         type: string
-        default: Test-NovaBuild
+        default: Invoke-NovaTest
       release-continuous-integration:
         description: Pass -ContinuousIntegration to Invoke-NovaRelease.
         type: boolean

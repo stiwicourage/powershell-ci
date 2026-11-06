@@ -43,10 +43,10 @@ Callers must grant the permissions the reusable workflow needs
 ## What stays in each project
 
 The workflows install modules with the bundled `actions/install-ps-modules`
-(`install-modules` input; set `install-command` only to override it) and run
-project-owned scripts through the
-`test-command` inputs, so the defaults match the
-current Nova layout (`./scripts/build/ci/...`). CodeScene upload and analysis
+(`install-modules` input; set `install-command` only to override it). The
+default `test-command` is `Invoke-NovaBuild; Invoke-NovaTest` for tests and
+`Invoke-NovaTest` for publish; override it for project-specific checks, such as
+a ScriptAnalyzer script or `Test-NovaBuild`. CodeScene upload and analysis
 use the bundled `actions/codescene-analysis`; set `codescene-analysis-command`
 only to override it with a project script. Project-specific scripts, for
 example `Invoke-SemanticReleaseCI.ps1` or PSModuleUpdate's lane/gate scripts,
@@ -55,7 +55,7 @@ native-credential matrix are also project-owned.
 
 ## Known follow-up
 
-`Install-CiPowerShellModules.ps1`, `Invoke-NovaModuleToolsCI.ps1` and the
+`Invoke-NovaModuleToolsCI.ps1` and the
 CodeScene helper scripts still differ between projects. Consolidating them into
 this repository is the next step; until then they are the main source of drift.
 

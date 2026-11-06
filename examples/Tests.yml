@@ -18,7 +18,7 @@ permissions:
 
 jobs:
   tests:
-    uses: stiwicourage/powershell-ci/.github/workflows/tests.yml@v1
+    uses: stiwicourage/powershell-ci/.github/workflows/tests.yml@develop
     with:
       changelog-files: ./CHANGELOG.md ./RELEASE_NOTE.md
     secrets: inherit
