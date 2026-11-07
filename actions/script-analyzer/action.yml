@@ -1,0 +1,39 @@
+name: ScriptAnalyzer
+description: Run PSScriptAnalyzer across the project and fail on any finding.
+
+inputs:
+  analysis-paths:
+    description: Space separated project-relative paths analyzed.
+    required: false
+    default: src scripts tests run.ps1
+  required-version:
+    description: Exact PSScriptAnalyzer version required. Empty accepts any installed version.
+    required: false
+    default: ''
+  exclude-rules:
+    description: Space separated rules excluded from analysis.
+    required: false
+    default: PSAvoidUsingWriteHost
+  output-directory:
+    description: Project-relative directory that receives scriptanalyzer.txt.
+    required: false
+    default: ./artifacts
+
+runs:
+  using: composite
+  steps:
+    - name: Run PSScriptAnalyzer
+      shell: pwsh
+      env:
+        ANALYSIS_PATHS: ${{ inputs.analysis-paths }}
+        REQUIRED_VERSION: ${{ inputs.required-version }}
+        EXCLUDE_RULES: ${{ inputs.exclude-rules }}
+        OUTPUT_DIRECTORY: ${{ inputs.output-directory }}
+      run: |
+        & "${{ github.action_path }}/Invoke-ScriptAnalyzerCI.ps1" `
+          -ProjectRoot $env:GITHUB_WORKSPACE `
+          -OutputDirectory $env:OUTPUT_DIRECTORY `
+          -AnalysisPath @($env:ANALYSIS_PATHS -split '\s+' | Where-Object { $_ }) `
+          -RequiredVersion $env:REQUIRED_VERSION `
+          -ExcludeRule @($env:EXCLUDE_RULES -split '\s+' | Where-Object { $_ })
+        exit $LASTEXITCODE

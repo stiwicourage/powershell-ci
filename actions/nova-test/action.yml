@@ -1,0 +1,33 @@
+name: Nova Test
+description: Build the project, run Invoke-NovaTest and optionally Test-NovaBuild, and collect NUnit and coverage artifacts.
+
+inputs:
+  build-validation:
+    description: Also run Test-NovaBuild integration tests.
+    required: false
+    default: 'true'
+  exclude-tags:
+    description: Space separated Pester tags excluded from the test runs.
+    required: false
+    default: ''
+  output-directory:
+    description: Project-relative directory that receives the collected artifacts.
+    required: false
+    default: ./artifacts
+
+runs:
+  using: composite
+  steps:
+    - name: Run Nova build and tests
+      shell: pwsh
+      env:
+        BUILD_VALIDATION: ${{ inputs.build-validation }}
+        EXCLUDE_TAGS: ${{ inputs.exclude-tags }}
+        OUTPUT_DIRECTORY: ${{ inputs.output-directory }}
+      run: |
+        & "${{ github.action_path }}/Invoke-NovaTestCI.ps1" `
+          -ProjectRoot $env:GITHUB_WORKSPACE `
+          -OutputDirectory $env:OUTPUT_DIRECTORY `
+          -ExcludeTag @($env:EXCLUDE_TAGS -split '\s+' | Where-Object { $_ }) `
+          -SkipBuildValidation:($env:BUILD_VALIDATION -ne 'true')
+        exit $LASTEXITCODE

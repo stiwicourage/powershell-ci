@@ -11,6 +11,8 @@ The goal is one place to fix CI so projects stop drifting apart.
 | `actions/check-coverage` | CodeScene coverage gates |
 | `actions/codescene-analysis` | Upload coverage and trigger a CodeScene analysis (bundles the scripts) |
 | `actions/install-ps-modules` | Install PowerShell modules, registering PSGallery when the runner lacks it |
+| `actions/script-analyzer` | Run PSScriptAnalyzer over the project; local wrappers call the same script via a sibling `powershell-ci` checkout or `POWERSHELL_CI_PATH` |
+| `actions/nova-test` | Build, run `Invoke-NovaTest` and optionally `Test-NovaBuild`, and collect NUnit and coverage artifacts |
 | `actions/create-verified-commit` | Verified release/prerelease commit |
 | `actions/update-git-ref` | Move a branch to a commit |
 | `actions/create-annotated-tag` | Annotated release tag |
@@ -44,9 +46,12 @@ Callers must grant the permissions the reusable workflow needs
 
 The workflows install modules with the bundled `actions/install-ps-modules`
 (`install-modules` input; set `install-command` only to override it). The
-default `test-command` is `Invoke-NovaBuild; Invoke-NovaTest` for tests and
-`Invoke-NovaTest` for publish; override it for project-specific checks, such as
-a ScriptAnalyzer script or `Test-NovaBuild`. CodeScene upload and analysis
+default `test-command` is empty, which runs the shared `script-analyzer` gate
+(`script-analyzer-enabled`) and then the shared `nova-test` action
+(`Invoke-NovaBuild`, `Invoke-NovaTest` and, unless `build-validation: false`,
+`Test-NovaBuild`). Set `test-command` only to replace that action. For publish
+the default `test-command` is `Invoke-NovaTest`; override it for project-specific
+checks, such as `Test-NovaBuild`. CodeScene upload and analysis
 use the bundled `actions/codescene-analysis`; set `codescene-analysis-command`
 only to override it with a project script. Project-specific scripts, for
 example `Invoke-SemanticReleaseCI.ps1` or PSModuleUpdate's lane/gate scripts,

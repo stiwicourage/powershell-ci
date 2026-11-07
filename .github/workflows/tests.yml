@@ -15,10 +15,26 @@ on:
         description: Space separated modules installed with the shared install-ps-modules action, in addition to project.json Manifest.RequiredModules.
         type: string
         default: NovaModuleTools KeepAChangelog PSScriptAnalyzer
-      test-command:
-        description: PowerShell command that builds, tests and writes artifacts/coverage.xml.
+      script-analyzer-enabled:
+        description: Run the shared PSScriptAnalyzer gate before the tests.
+        type: boolean
+        default: true
+      script-analyzer-paths:
+        description: Space separated project-relative paths analyzed by PSScriptAnalyzer.
         type: string
-        default: Invoke-NovaBuild; Invoke-NovaTest
+        default: src scripts tests run.ps1
+      script-analyzer-required-version:
+        description: Exact PSScriptAnalyzer version required. Empty accepts any installed version.
+        type: string
+        default: ''
+      build-validation:
+        description: Also run Test-NovaBuild after Invoke-NovaTest. Ignored when test-command is set.
+        type: boolean
+        default: true
+      test-command:
+        description: Optional PowerShell command that replaces the shared nova-test action. It must write artifacts/coverage.xml.
+        type: string
+        default: ''
       changelog-files:
         description: Space separated changelog files validated with Test-KeepAChangelogFile. Empty skips the step.
         type: string
@@ -79,7 +95,21 @@ jobs:
         if: ${{ inputs.install-command != '' }}
         run: ${{ inputs.install-command }}
 
+      - name: Run PSScriptAnalyzer
+        if: ${{ inputs.script-analyzer-enabled }}
+        uses: stiwicourage/powershell-ci/actions/script-analyzer@develop
+        with:
+          analysis-paths: ${{ inputs.script-analyzer-paths }}
+          required-version: ${{ inputs.script-analyzer-required-version }}
+
       - name: Run CI tests and coverage
+        if: ${{ inputs.test-command == '' }}
+        uses: stiwicourage/powershell-ci/actions/nova-test@develop
+        with:
+          build-validation: ${{ inputs.build-validation }}
+
+      - name: Run CI tests and coverage (custom command)
+        if: ${{ inputs.test-command != '' }}
         run: ${{ inputs.test-command }}
 
       - name: Validate changelog files with Test-KeepAChangelogFile
