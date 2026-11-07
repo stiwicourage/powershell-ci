@@ -24,7 +24,7 @@ on:
         type: string
         default: ''
       install-modules:
-        description: Space separated modules installed with the shared install-ps-modules action. Empty skips the step.
+        description: Space separated modules installed with the shared install-ps-modules action, in addition to project.json Manifest.RequiredModules.
         type: string
         default: NovaModuleTools KeepAChangelog
       build-command:
@@ -67,7 +67,7 @@ jobs:
           fetch-depth: 0
 
       - name: Install required modules
-        if: ${{ inputs.install-command == '' && inputs.install-modules != '' }}
+        if: ${{ inputs.install-command == '' }}
         uses: stiwicourage/powershell-ci/actions/install-ps-modules@develop
         with:
           modules: ${{ inputs.install-modules }}

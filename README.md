@@ -61,10 +61,17 @@ this repository is the next step; until then they are the main source of drift.
 
 ## Releasing
 
-Versions follow Semantic Versioning with immutable tags (`v0.1.0`, ...). While
-the workflows are being validated they are `0.x` and callers reference
-`@develop`. The workflows reference the actions as
-`stiwicourage/powershell-ci/actions/<name>@<ref>`; when cutting a release, change
-those references (in `.github/workflows/`) from `@develop` to the new tag before
-tagging, and callers pin the same tag, for example `@v0.1.0`. Create `v1.0.0`
-and a floating `v1` only once the inputs and behavior are considered stable.
+Versions follow Semantic Versioning with immutable tags **without a `v`
+prefix** (`0.1.0`, `0.2.0`, ...). While the workflows are being validated they
+are `0.x` and callers reference `@develop`. The workflows reference the
+actions as `stiwicourage/powershell-ci/actions/<name>@<ref>`. To cut a release:
+
+1. Run `./scripts/Set-InternalActionRefs.ps1 -Ref 0.1.0` to pin those
+   references from `@develop` to the new tag.
+2. Commit, then create the tag `0.1.0` on that commit.
+3. Run `./scripts/Set-InternalActionRefs.ps1 -Ref develop` and commit to return
+   `develop` to the moving reference.
+
+Callers pin the tag, for example `@0.1.0`; Dependabot's `github-actions`
+ecosystem then proposes new tags. Create `1.0.0` only once the inputs and
+behavior are considered stable.

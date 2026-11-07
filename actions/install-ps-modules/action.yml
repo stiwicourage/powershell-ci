@@ -4,7 +4,12 @@ description: Install PowerShell modules from a repository, registering PSGallery
 inputs:
   modules:
     description: Space or comma separated module names.
-    required: true
+    required: false
+    default: ''
+  project-file:
+    description: Nova project.json whose Manifest.RequiredModules are installed too. Empty or missing file skips it.
+    required: false
+    default: project.json
   repository:
     description: Repository to install from.
     required: false
@@ -20,6 +25,7 @@ runs:
     - shell: pwsh
       env:
         MODULES: ${{ inputs.modules }}
+        PROJECT_FILE: ${{ inputs.project-file }}
         REPOSITORY: ${{ inputs.repository }}
         ALLOW_PRERELEASE: ${{ inputs.allow-prerelease }}
       run: |
@@ -40,7 +46,13 @@ runs:
         }
         if ($env:ALLOW_PRERELEASE -eq 'true') { $installArguments.AllowPrerelease = $true }
 
-        foreach ($name in $env:MODULES -split '[\s,]+' | Where-Object { $_ }) {
+        $names = @($env:MODULES -split '[\s,]+' | Where-Object { $_ })
+        if ($env:PROJECT_FILE -and (Test-Path -LiteralPath $env:PROJECT_FILE)) {
+          $project = Get-Content -LiteralPath $env:PROJECT_FILE -Raw | ConvertFrom-Json
+          $names += @($project.Manifest.RequiredModules | ForEach-Object { if ($_ -is [string]) { $_ } else { $_.ModuleName } })
+        }
+
+        foreach ($name in $names | Where-Object { $_ } | Select-Object -Unique) {
           Write-Output "Installing PowerShell module '$name'..."
           Install-Module -Name $name @installArguments
           $installed = Get-InstalledModule -Name $name | Sort-Object Version -Descending | Select-Object -First 1
