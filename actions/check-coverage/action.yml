@@ -35,7 +35,7 @@ runs:
         fi
 
         for file in "${files[@]}"; do
-          pwsh -NoLogo -NoProfile -File ./scripts/build/ci/Repair-CodeSceneJaCoCoCoverage.ps1 -Path "$file"
+          pwsh -NoLogo -NoProfile -File "${{ github.action_path }}/../codescene-analysis/Repair-CodeSceneJaCoCoCoverage.ps1" -Path "$file"
         done
 
     - name: Run CodeScene coverage gate check
