@@ -71,17 +71,19 @@ prefix** (`0.1.0`, `0.2.0`, ...). While the workflows are being validated they
 are `0.x` and callers reference `@develop`. The workflows reference the
 actions as `stiwicourage/powershell-ci/actions/<name>@<ref>`. To cut a release:
 
-1. Move the finished entries in `CHANGELOG.md` under a version heading such
-   as `## [0.1.0] - 2026-11-10` and merge to `main`.
+1. Merge to `main` using Conventional Commits (`feat:`, `fix:`, `feat!:`).
 2. `.github/workflows/release.yml` runs on every push to `main` (or manually).
-   It reads the newest version heading from `CHANGELOG.md` and stops if that
-   tag already exists. Otherwise it pins the internal references with
+   It uses [SemanticRelease](https://github.com/stiwicourage/SemanticRelease)
+   to infer the next version from the commits since the last tag and writes it
+   to `version.json`. It stops if there are no new commits or the tag exists.
+   Otherwise it pins the internal references with
    `scripts/Set-InternalActionRefs.ps1`, creates a verified
    `chore(release): <version>` commit on `main`, tags that commit and creates
-   the GitHub release from the changelog section.
-3. Merge `main` back to `develop`. Run
-   `./scripts/Set-InternalActionRefs.ps1 -Ref develop` and commit to return
-   `develop` to the moving reference.
+   the GitHub release with generated notes.
+3. The same workflow then resets `develop` to the release commit, restores the
+   moving `@develop` references and sets `version.json` to the next preview
+   version (for example `0.1.1-preview`). Like the Nova publish flow, this
+   force-updates `develop`, so keep unmerged work on feature branches.
 
 The repository's own checks live in `.github/workflows/ci.yml` (Pester on all
 three operating systems and actionlint); the other workflows are reusable

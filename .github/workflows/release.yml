@@ -28,61 +28,90 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Read release version from CHANGELOG.md
+      - name: Install SemanticRelease
+        uses: ./actions/install-ps-modules
+        with:
+          modules: SemanticRelease
+
+      - name: Determine next version from Conventional Commits
         id: version
         run: |
-          $changelog = Get-Content -LiteralPath ./CHANGELOG.md -Raw
-          $heading = [regex]::Match($changelog, '(?m)^## \[(?<version>\d+\.\d+\.\d+[^\]]*)\][^\r\n]*\r?\n')
-          if (-not $heading.Success) {
-            throw 'CHANGELOG.md has no released version heading such as "## [0.1.0] - 2026-11-10".'
-          }
-          $version = $heading.Groups['version'].Value
-          $rest = $changelog.Substring($heading.Index + $heading.Length)
-          $next = [regex]::Match($rest, '(?m)^## \[')
-          $notes = if ($next.Success) { $rest.Substring(0, $next.Index) } else { $rest }
-          $notes = $notes.Trim()
-
           git fetch --tags --quiet
-          $exists = [bool](git tag --list $version)
+          $commitCount = @(Get-SemanticReleaseCommitMessage -ProjectRoot .).Count
+          $result = Update-SemanticReleaseVersion -Path ./version.json -ProjectRoot . -Confirm:$false
+          $version = $result.NewVersion
+          $needsRelease = $commitCount -gt 0 -and -not [bool](git tag --list $version)
 
           "version=$version" >> $env:GITHUB_OUTPUT
-          "tag_exists=$($exists.ToString().ToLowerInvariant())" >> $env:GITHUB_OUTPUT
-          Set-Content -LiteralPath "$env:RUNNER_TEMP/release-notes.md" -Value $notes
-          if ($exists) { Write-Output "Tag $version already exists; nothing to release." }
+          "needs_release=$($needsRelease.ToString().ToLowerInvariant())" >> $env:GITHUB_OUTPUT
+          if (-not $needsRelease) {
+            Write-Output "No new commits since the last tag or tag $version exists; nothing to release."
+            git checkout -- version.json
+          }
 
       - name: Pin internal references to the release tag
-        if: ${{ steps.version.outputs.tag_exists == 'false' }}
+        if: ${{ steps.version.outputs.needs_release == 'true' }}
         run: ./scripts/Set-InternalActionRefs.ps1 -Ref '${{ steps.version.outputs.version }}'
 
       - name: Create verified release commit
         id: commit_release
-        if: ${{ steps.version.outputs.tag_exists == 'false' }}
+        if: ${{ steps.version.outputs.needs_release == 'true' }}
         uses: ./actions/create-verified-commit
         with:
           base-ref: main
           commit-message: 'chore(release): ${{ steps.version.outputs.version }}'
 
       - name: Push verified release commit
-        if: ${{ steps.version.outputs.tag_exists == 'false' && steps.commit_release.outputs.has-changes == 'true' }}
+        if: ${{ steps.version.outputs.needs_release == 'true' && steps.commit_release.outputs.has-changes == 'true' }}
         uses: ./actions/update-git-ref
         with:
           ref: refs/heads/main
           sha: ${{ steps.commit_release.outputs.commit-sha }}
 
       - name: Create annotated release tag
-        if: ${{ steps.version.outputs.tag_exists == 'false' }}
+        if: ${{ steps.version.outputs.needs_release == 'true' }}
         uses: ./actions/create-annotated-tag
         with:
           tag-name: ${{ steps.version.outputs.version }}
           target-sha: ${{ steps.commit_release.outputs.has-changes == 'true' && steps.commit_release.outputs.commit-sha || github.sha }}
           message: ${{ steps.version.outputs.version }}
 
+      - name: Prepare develop for the next prerelease
+        id: prepare_develop
+        if: ${{ steps.version.outputs.needs_release == 'true' }}
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          git fetch origin main develop
+          git checkout develop
+          git reset --hard '${{ steps.commit_release.outputs.has-changes == 'true' && steps.commit_release.outputs.commit-sha || github.sha }}'
+
+          ./scripts/Set-InternalActionRefs.ps1 -Ref develop
+          $next = Get-SemanticReleaseNextVersion -CurrentVersion ([semver]$env:VERSION) -Label Patch -PreviewRelease
+          [ordered]@{ Version = "$($next.NewVersion)" } | ConvertTo-Json | Set-Content ./version.json
+
+      - name: Create verified develop commit
+        id: commit_develop
+        if: ${{ steps.version.outputs.needs_release == 'true' }}
+        uses: ./actions/create-verified-commit
+        with:
+          base-ref: main
+          commit-message: 'chore: prepare develop for next prerelease'
+
+      - name: Push verified develop commit
+        if: ${{ steps.version.outputs.needs_release == 'true' && steps.commit_develop.outputs.has-changes == 'true' }}
+        uses: ./actions/update-git-ref
+        with:
+          ref: refs/heads/develop
+          sha: ${{ steps.commit_develop.outputs.commit-sha }}
+          force: 'true'
+
       - name: Create GitHub release
-        if: ${{ steps.version.outputs.tag_exists == 'false' }}
+        if: ${{ steps.version.outputs.needs_release == 'true' }}
         env:
           GH_TOKEN: ${{ github.token }}
           VERSION: ${{ steps.version.outputs.version }}
         run: |
-          $arguments = @($env:VERSION, '--title', $env:VERSION, '--notes-file', "$env:RUNNER_TEMP/release-notes.md", '--verify-tag')
+          $arguments = @($env:VERSION, '--title', $env:VERSION, '--generate-notes', '--verify-tag')
           if ($env:VERSION -match '-') { $arguments += '--prerelease' }
           gh release create @arguments
