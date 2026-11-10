@@ -74,8 +74,14 @@ actions as `stiwicourage/powershell-ci/actions/<name>@<ref>`. To cut a release:
 1. Run `./scripts/Set-InternalActionRefs.ps1 -Ref 0.1.0` to pin those
    references from `@develop` to the new tag.
 2. Commit, then create the tag `0.1.0` on that commit.
+   Pushing the tag runs `release.yml`, which verifies the pinning and creates
+   the GitHub release.
 3. Run `./scripts/Set-InternalActionRefs.ps1 -Ref develop` and commit to return
    `develop` to the moving reference.
+
+The repository's own checks live in `.github/workflows/ci.yml` (Pester on all
+three operating systems and actionlint); the other workflows are reusable
+(`workflow_call`) and only run when a project calls them.
 
 Callers pin the tag, for example `@0.1.0`; Dependabot's `github-actions`
 ecosystem then proposes new tags. Create `1.0.0` only once the inputs and
