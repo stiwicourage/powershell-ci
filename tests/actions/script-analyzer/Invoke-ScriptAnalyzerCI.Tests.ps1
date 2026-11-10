@@ -222,7 +222,7 @@ Describe 'Invoke-ScriptAnalyzerCI script process behavior' {
         $process = Invoke-PwshProcess -ArgumentList @('-NoLogo', '-NoProfile', '-File', $commandPath)
         $result = @($process.StandardOutput -split [Environment]::NewLine | Where-Object { $_ -ne '' })
 
-        $process.ExitCode | Should -Be 0
+        $process.ExitCode | Should -Be 0 -Because ($process.StandardOutput + $process.StandardError)
         @($result)[-1] | Should -BeLike 'PSScriptAnalyzer: 0 findings*'
         $process.StandardError | Should -BeNullOrEmpty
     }

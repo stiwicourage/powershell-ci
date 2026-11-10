@@ -30,6 +30,7 @@ jobs:
           }
 
       - name: Create GitHub release
+        shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ github.ref_name }}
