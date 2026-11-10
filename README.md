@@ -71,12 +71,16 @@ prefix** (`0.1.0`, `0.2.0`, ...). While the workflows are being validated they
 are `0.x` and callers reference `@develop`. The workflows reference the
 actions as `stiwicourage/powershell-ci/actions/<name>@<ref>`. To cut a release:
 
-1. Run `./scripts/Set-InternalActionRefs.ps1 -Ref 0.1.0` to pin those
-   references from `@develop` to the new tag.
-2. Commit, then create the tag `0.1.0` on that commit.
-   Pushing the tag runs `release.yml`, which verifies the pinning and creates
-   the GitHub release.
-3. Run `./scripts/Set-InternalActionRefs.ps1 -Ref develop` and commit to return
+1. Move the finished entries in `CHANGELOG.md` under a version heading such
+   as `## [0.1.0] - 2026-11-10` and merge to `main`.
+2. `.github/workflows/release.yml` runs on every push to `main` (or manually).
+   It reads the newest version heading from `CHANGELOG.md` and stops if that
+   tag already exists. Otherwise it pins the internal references with
+   `scripts/Set-InternalActionRefs.ps1`, creates a verified
+   `chore(release): <version>` commit on `main`, tags that commit and creates
+   the GitHub release from the changelog section.
+3. Merge `main` back to `develop`. Run
+   `./scripts/Set-InternalActionRefs.ps1 -Ref develop` and commit to return
    `develop` to the moving reference.
 
 The repository's own checks live in `.github/workflows/ci.yml` (Pester on all

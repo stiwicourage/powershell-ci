@@ -2,38 +2,87 @@ name: Release
 
 on:
   push:
-    tags:
-      - '[0-9]+.[0-9]+.[0-9]+*'
+    branches:
+      - main
+  workflow_dispatch:
 
 permissions:
   contents: write
+  actions: write
+
+defaults:
+  run:
+    shell: pwsh
 
 jobs:
-  github-release:
+  release:
+    if: >-
+      ${{
+        github.event_name != 'push' ||
+        !startsWith(github.event.head_commit.message || '', 'chore(release): ')
+      }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-      - name: Verify workflows are pinned to the release tag
-        shell: pwsh
-        env:
-          TAG: ${{ github.ref_name }}
+      - name: Read release version from CHANGELOG.md
+        id: version
         run: |
-          $pattern = 'stiwicourage/powershell-ci/[^\s@]+@(\S+)'
-          $unpinned = Get-ChildItem .github/workflows -Filter '*.yml' |
-            Select-String -Pattern $pattern |
-            Where-Object { $_.Matches[0].Groups[1].Value -ne $env:TAG }
-          if ($unpinned) {
-            $unpinned | ForEach-Object { Write-Error "$($_.Path):$($_.LineNumber) is not pinned to $env:TAG" }
-            throw "Run scripts/Set-InternalActionRefs.ps1 -Ref $env:TAG before tagging."
+          $changelog = Get-Content -LiteralPath ./CHANGELOG.md -Raw
+          $heading = [regex]::Match($changelog, '(?m)^## \[(?<version>\d+\.\d+\.\d+[^\]]*)\][^\r\n]*\r?\n')
+          if (-not $heading.Success) {
+            throw 'CHANGELOG.md has no released version heading such as "## [0.1.0] - 2026-11-10".'
           }
+          $version = $heading.Groups['version'].Value
+          $rest = $changelog.Substring($heading.Index + $heading.Length)
+          $next = [regex]::Match($rest, '(?m)^## \[')
+          $notes = if ($next.Success) { $rest.Substring(0, $next.Index) } else { $rest }
+          $notes = $notes.Trim()
+
+          git fetch --tags --quiet
+          $exists = [bool](git tag --list $version)
+
+          "version=$version" >> $env:GITHUB_OUTPUT
+          "tag_exists=$($exists.ToString().ToLowerInvariant())" >> $env:GITHUB_OUTPUT
+          Set-Content -LiteralPath "$env:RUNNER_TEMP/release-notes.md" -Value $notes
+          if ($exists) { Write-Output "Tag $version already exists; nothing to release." }
+
+      - name: Pin internal references to the release tag
+        if: ${{ steps.version.outputs.tag_exists == 'false' }}
+        run: ./scripts/Set-InternalActionRefs.ps1 -Ref '${{ steps.version.outputs.version }}'
+
+      - name: Create verified release commit
+        id: commit_release
+        if: ${{ steps.version.outputs.tag_exists == 'false' }}
+        uses: ./actions/create-verified-commit
+        with:
+          base-ref: main
+          commit-message: 'chore(release): ${{ steps.version.outputs.version }}'
+
+      - name: Push verified release commit
+        if: ${{ steps.version.outputs.tag_exists == 'false' && steps.commit_release.outputs.has-changes == 'true' }}
+        uses: ./actions/update-git-ref
+        with:
+          ref: refs/heads/main
+          sha: ${{ steps.commit_release.outputs.commit-sha }}
+
+      - name: Create annotated release tag
+        if: ${{ steps.version.outputs.tag_exists == 'false' }}
+        uses: ./actions/create-annotated-tag
+        with:
+          tag-name: ${{ steps.version.outputs.version }}
+          target-sha: ${{ steps.commit_release.outputs.has-changes == 'true' && steps.commit_release.outputs.commit-sha || github.sha }}
+          message: ${{ steps.version.outputs.version }}
 
       - name: Create GitHub release
-        shell: pwsh
+        if: ${{ steps.version.outputs.tag_exists == 'false' }}
         env:
           GH_TOKEN: ${{ github.token }}
-          TAG: ${{ github.ref_name }}
+          VERSION: ${{ steps.version.outputs.version }}
         run: |
-          $prerelease = if ($env:TAG -match '-') { '--prerelease' } else { $null }
-          gh release create $env:TAG --title $env:TAG --generate-notes $prerelease
+          $arguments = @($env:VERSION, '--title', $env:VERSION, '--notes-file', "$env:RUNNER_TEMP/release-notes.md", '--verify-tag')
+          if ($env:VERSION -match '-') { $arguments += '--prerelease' }
+          gh release create @arguments
