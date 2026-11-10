@@ -49,10 +49,6 @@ jobs:
             git checkout -- version.json
           }
 
-      - name: Pin internal references to the release tag
-        if: ${{ steps.version.outputs.needs_release == 'true' }}
-        run: ./scripts/Set-InternalActionRefs.ps1 -Ref '${{ steps.version.outputs.version }}'
-
       - name: Create verified release commit
         id: commit_release
         if: ${{ steps.version.outputs.needs_release == 'true' }}
@@ -76,7 +72,7 @@ jobs:
           target-sha: ${{ steps.commit_release.outputs.has-changes == 'true' && steps.commit_release.outputs.commit-sha || github.sha }}
           message: ${{ steps.version.outputs.version }}
 
-      - name: Prepare develop for the next prerelease
+      - name: Prepare develop for the next prerelease version
         id: prepare_develop
         if: ${{ steps.version.outputs.needs_release == 'true' }}
         env:
@@ -86,7 +82,6 @@ jobs:
           git checkout develop
           git reset --hard '${{ steps.commit_release.outputs.has-changes == 'true' && steps.commit_release.outputs.commit-sha || github.sha }}'
 
-          ./scripts/Set-InternalActionRefs.ps1 -Ref develop
           $next = Get-SemanticReleaseNextVersion -CurrentVersion ([semver]$env:VERSION) -Label Patch -PreviewRelease
           [ordered]@{ Version = "$($next.NewVersion)" } | ConvertTo-Json | Set-Content ./version.json
 

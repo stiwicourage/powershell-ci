@@ -76,14 +76,18 @@ actions as `stiwicourage/powershell-ci/actions/<name>@<ref>`. To cut a release:
    It uses [SemanticRelease](https://github.com/stiwicourage/SemanticRelease)
    to infer the next version from the commits since the last tag and writes it
    to `version.json`. It stops if there are no new commits or the tag exists.
-   Otherwise it pins the internal references with
-   `scripts/Set-InternalActionRefs.ps1`, creates a verified
-   `chore(release): <version>` commit on `main`, tags that commit and creates
-   the GitHub release with generated notes.
-3. The same workflow then resets `develop` to the release commit, restores the
-   moving `@develop` references and sets `version.json` to the next preview
-   version (for example `0.1.1-preview`). Like the Nova publish flow, this
-   force-updates `develop`, so keep unmerged work on feature branches.
+   Otherwise it creates a verified `chore(release): <version>` commit on
+   `main`, tags that commit and creates the GitHub release with generated
+   notes.
+3. The same workflow then resets `develop` to the release commit and sets
+   `version.json` to the next preview version (for example `0.1.1-preview`).
+   Like the Nova publish flow, this force-updates `develop`, so keep unmerged
+   work on feature branches.
+
+The default `GITHUB_TOKEN` cannot change files under `.github/workflows/`, so
+the release does not rewrite the internal `@develop` references to the release
+tag. Callers that need an immutable reference should pin the release tag or
+commit SHA of the workflow they call.
 
 The repository's own checks live in `.github/workflows/ci.yml` (Pester on all
 three operating systems and actionlint); the other workflows are reusable
