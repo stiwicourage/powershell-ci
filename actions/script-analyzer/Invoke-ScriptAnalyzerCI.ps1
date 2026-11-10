@@ -290,7 +290,7 @@ function Invoke-ScriptAnalyzerCI {
     $resultList = @(Get-ScriptAnalyzerResultList -AnalysisPathList $analysisPathList)
     $findingList = @(ConvertTo-ScriptAnalyzerFindingRecordList -ResultList $resultList -RepositoryRoot $repositoryRoot)
 
-    $resolvedOutputDirectory = Join-Path $repositoryRoot $OutputDirectory
+    $resolvedOutputDirectory = if ([System.IO.Path]::IsPathRooted($OutputDirectory)) { $OutputDirectory } else { Join-Path $repositoryRoot $OutputDirectory }
     $null = New-Item -ItemType Directory -Path $resolvedOutputDirectory -Force
     $reportPath = Join-Path $resolvedOutputDirectory 'scriptanalyzer.txt'
     Write-ScriptAnalyzerReport -Path $reportPath -FindingList $findingList -AnalyzedFileCount $analysisPathList.Count
