@@ -81,14 +81,14 @@ Invoke-NovaBuild
 
 $projectInfo = Get-NovaProjectInfo
 $builtModulePath = $projectInfo.OutputModuleDir
+if ($PesterRequiredVersion -and $env:POWERSHELL_CI_MODULE_ROOT) {
+    Assert-CiDependencyOrigin -ModuleRoot $env:POWERSHELL_CI_MODULE_ROOT
+}
 Remove-Module $projectInfo.ProjectName -ErrorAction SilentlyContinue
 Import-Module $builtModulePath -Force
 $projectInfo = Get-NovaProjectInfo
 if ($PesterRequiredVersion) {
     Assert-CiPesterVersion -RequiredVersion $PesterRequiredVersion
-    if ($env:POWERSHELL_CI_MODULE_ROOT) {
-        Assert-CiDependencyOrigin -ModuleRoot $env:POWERSHELL_CI_MODULE_ROOT
-    }
     Write-CiRuntimeEvidence -OutputDirectory $OutputDirectory
 }
 
