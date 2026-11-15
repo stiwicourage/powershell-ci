@@ -7,6 +7,14 @@ on:
         description: Runner label.
         type: string
         default: ubuntu-latest
+      dependency-mode:
+        description: legacy installs CurrentUser; isolated uses owned disposable dependencies.
+        type: string
+        default: legacy
+      pester-required-version:
+        description: Exact Pester version saved in isolated mode; empty preserves defaults.
+        type: string
+        default: ''
       release-branch:
         description: Branch that produces stable releases.
         type: string
@@ -66,25 +74,64 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Validate dependency mode
+        env:
+          DEPENDENCY_MODE: ${{ inputs.dependency-mode }}
+          INSTALL_COMMAND: ${{ inputs.install-command }}
+        run: |
+          if ($env:DEPENDENCY_MODE -notin @('legacy', 'isolated')) {
+            throw 'Unsupported dependency-mode.'
+          }
+          if ($env:DEPENDENCY_MODE -eq 'isolated' -and $env:INSTALL_COMMAND) {
+            throw 'isolated mode cannot use install-command; use the shared owned installer.'
+          }
+
       - name: Install required modules
+        id: ci_modules
         if: ${{ inputs.install-command == '' }}
         uses: stiwicourage/powershell-ci/actions/install-ps-modules@develop
         with:
           modules: ${{ inputs.install-modules }}
+          dependency-mode: ${{ inputs.dependency-mode }}
+          pester-required-version: ${{ inputs.pester-required-version }}
 
       - name: Install required modules (custom command)
         if: ${{ inputs.install-command != '' }}
         run: ${{ inputs.install-command }}
 
       - name: Build module
-        run: ${{ inputs.build-command }}
+        env:
+          PESTER_REQUIRED_VERSION: ${{ inputs.pester-required-version }}
+        run: |
+          if ($env:POWERSHELL_CI_BOOTSTRAP) {
+            . $env:POWERSHELL_CI_BOOTSTRAP
+            Initialize-CiDependencyEnvironment
+          }
+          if ($env:PESTER_REQUIRED_VERSION) {
+            Import-Module Pester -RequiredVersion $env:PESTER_REQUIRED_VERSION -ErrorAction Stop
+          }
+          ${{ inputs.build-command }}
 
       - name: Run Pester tests
-        run: ${{ inputs.test-command }}
+        env:
+          PESTER_REQUIRED_VERSION: ${{ inputs.pester-required-version }}
+        run: |
+          if ($env:POWERSHELL_CI_BOOTSTRAP) {
+            . $env:POWERSHELL_CI_BOOTSTRAP
+            Initialize-CiDependencyEnvironment
+          }
+          if ($env:PESTER_REQUIRED_VERSION) {
+            Import-Module Pester -RequiredVersion $env:PESTER_REQUIRED_VERSION -ErrorAction Stop
+          }
+          ${{ inputs.test-command }}
 
       - name: Generate report
         continue-on-error: true
         run: |
+          if ($env:POWERSHELL_CI_BOOTSTRAP) {
+            . $env:POWERSHELL_CI_BOOTSTRAP
+            Initialize-CiDependencyEnvironment
+          }
           $reportLines = @('## Output Files', '')
           $files = Get-ChildItem -Path ./dist -Recurse -ErrorAction SilentlyContinue | Sort-Object FullName
           if ($files) {
@@ -113,6 +160,10 @@ jobs:
           RELEASE_REPOSITORY: ${{ inputs.repository }}
           RELEASE_CI: ${{ inputs.release-continuous-integration }}
         run: |
+          if ($env:POWERSHELL_CI_BOOTSTRAP) {
+            . $env:POWERSHELL_CI_BOOTSTRAP
+            Initialize-CiDependencyEnvironment
+          }
           $releaseArguments = @{
             Repository = $env:RELEASE_REPOSITORY
             ApiKey = $env:PSGALLERY_API
@@ -160,6 +211,10 @@ jobs:
           RELEASE_BRANCH: ${{ inputs.release-branch }}
           DEVELOP_BRANCH: ${{ inputs.develop-branch }}
         run: |
+          if ($env:POWERSHELL_CI_BOOTSTRAP) {
+            . $env:POWERSHELL_CI_BOOTSTRAP
+            Initialize-CiDependencyEnvironment
+          }
           git fetch origin $env:RELEASE_BRANCH
           git fetch origin $env:DEVELOP_BRANCH
 
@@ -189,6 +244,10 @@ jobs:
         env:
           DEVELOP_BRANCH: ${{ inputs.develop-branch }}
         run: |
+          if ($env:POWERSHELL_CI_BOOTSTRAP) {
+            . $env:POWERSHELL_CI_BOOTSTRAP
+            Initialize-CiDependencyEnvironment
+          }
           $ErrorActionPreference = 'Stop'
           git fetch origin $env:DEVELOP_BRANCH
           git checkout $env:DEVELOP_BRANCH
@@ -199,11 +258,19 @@ jobs:
           PSGALLERY_API: ${{ secrets.PSGALLERY_API }}
           RELEASE_REPOSITORY: ${{ inputs.repository }}
         run: |
+          if ($env:POWERSHELL_CI_BOOTSTRAP) {
+            . $env:POWERSHELL_CI_BOOTSTRAP
+            Initialize-CiDependencyEnvironment
+          }
           Publish-NovaModule -Repository $env:RELEASE_REPOSITORY -ApiKey $env:PSGALLERY_API -SkipTests -ContinuousIntegration
 
       - name: Bump next prerelease version on develop
         if: ${{ github.ref_name == inputs.develop-branch }}
         run: |
+          if ($env:POWERSHELL_CI_BOOTSTRAP) {
+            . $env:POWERSHELL_CI_BOOTSTRAP
+            Initialize-CiDependencyEnvironment
+          }
           Update-NovaModuleVersion -Preview -ContinuousIntegration
 
       - name: Create verified develop commit
@@ -220,3 +287,9 @@ jobs:
         with:
           ref: refs/heads/${{ inputs.develop-branch }}
           sha: ${{ steps.commit_develop.outputs.commit-sha }}
+
+      - name: Cleanup owned CI modules
+        if: ${{ always() && steps.ci_modules.outputs.module-root != '' }}
+        uses: stiwicourage/powershell-ci/actions/cleanup-ps-modules@develop
+        with:
+          module-root: ${{ steps.ci_modules.outputs.module-root }}

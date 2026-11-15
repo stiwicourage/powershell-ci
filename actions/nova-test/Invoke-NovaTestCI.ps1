@@ -2,10 +2,14 @@ param(
     [string]$ProjectRoot = (Get-Location).Path,
     [string]$OutputDirectory = './artifacts',
     [string[]]$ExcludeTag = @(),
-    [switch]$SkipBuildValidation
+    [switch]$SkipBuildValidation,
+    [string]$PesterRequiredVersion = ''
 )
 
 Set-StrictMode -Version Latest
+. (Join-Path $PSScriptRoot 'CiRuntimeEvidence.ps1')
+. (Join-Path $PSScriptRoot '../install-ps-modules/CiDependencyRoot.ps1')
+Initialize-CiDependencyEnvironment
 
 function Get-CiNUnitArtifactPath {
     param(
@@ -27,39 +31,50 @@ function Copy-CiArtifactIfPresent {
     }
 
     $resolvedSourcePath = (Resolve-Path -LiteralPath $SourcePath).Path
-    $destinationDirectory = Split-Path -Parent $DestinationPath
-    if (-not [string]::IsNullOrWhiteSpace($destinationDirectory)) {
-        New-Item -ItemType Directory -Path $destinationDirectory -Force | Out-Null
-    }
-
-    $resolvedDestinationPath = [System.IO.Path]::GetFullPath($DestinationPath)
-    if ($resolvedSourcePath -eq $resolvedDestinationPath) {
+    Initialize-CiArtifactDirectory -DestinationPath $DestinationPath
+    if ($resolvedSourcePath -eq [System.IO.Path]::GetFullPath($DestinationPath)) {
         return
     }
 
-    Copy-Item -LiteralPath $resolvedSourcePath -Destination $resolvedDestinationPath -Force
+    Copy-Item -LiteralPath $resolvedSourcePath -Destination ([System.IO.Path]::GetFullPath($DestinationPath)) -Force
+}
+
+function Initialize-CiArtifactDirectory {
+    param([string]$DestinationPath)
+    $directory = Split-Path -Parent $DestinationPath
+    if (-not [string]::IsNullOrWhiteSpace($directory)) {
+        New-Item -ItemType Directory -Path $directory -Force | Out-Null
+    }
 }
 
 function Copy-CiArtifactsIfPresent {
     param(
         [Parameter(Mandatory)][string]$ProjectRoot,
         [Parameter(Mandatory)][string]$ArtifactsDirectory,
-        [Parameter(Mandatory)][string]$ProjectName
+        [Parameter(Mandatory)][string]$ProjectName,
+        [switch]$SkipCoverage
     )
 
     $sourceArtifactsDirectory = Join-Path $ProjectRoot 'artifacts'
     Copy-CiArtifactIfPresent `
         -SourcePath (Join-Path $sourceArtifactsDirectory 'TestResults.xml') `
         -DestinationPath (Get-CiNUnitArtifactPath -ArtifactsDirectory $ArtifactsDirectory -ProjectName $ProjectName)
-    Copy-CiArtifactIfPresent `
-        -SourcePath (Join-Path $sourceArtifactsDirectory 'coverage.xml') `
-        -DestinationPath (Join-Path $ArtifactsDirectory 'coverage.xml')
+    if (-not $SkipCoverage) {
+        Copy-CiUnitCoverage -ProjectRoot $ProjectRoot -ArtifactsDirectory $ArtifactsDirectory
+    }
+}
+
+function Copy-CiUnitCoverage {
+    param([string]$ProjectRoot, [string]$ArtifactsDirectory)
+    $source = Join-Path $ProjectRoot 'artifacts/coverage.xml'
+    Copy-CiArtifactIfPresent -SourcePath $source -DestinationPath (Join-Path $ArtifactsDirectory 'coverage.xml')
 }
 
 $repoRoot = (Resolve-Path -LiteralPath $ProjectRoot).Path
 Set-Location $repoRoot
 New-Item -ItemType Directory -Path $OutputDirectory -Force | Out-Null
 
+Import-CiPester -RequiredVersion $PesterRequiredVersion
 Import-Module NovaModuleTools -ErrorAction Stop
 
 Invoke-NovaBuild
@@ -69,25 +84,72 @@ $builtModulePath = $projectInfo.OutputModuleDir
 Remove-Module $projectInfo.ProjectName -ErrorAction SilentlyContinue
 Import-Module $builtModulePath -Force
 $projectInfo = Get-NovaProjectInfo
+if ($PesterRequiredVersion) {
+    Assert-CiPesterVersion -RequiredVersion $PesterRequiredVersion
+    if ($env:POWERSHELL_CI_MODULE_ROOT) {
+        Assert-CiDependencyOrigin -ModuleRoot $env:POWERSHELL_CI_MODULE_ROOT
+    }
+    Write-CiRuntimeEvidence -OutputDirectory $OutputDirectory
+}
 
-$testFailed = $false
-try {
+function Get-CiTestTagArgument {
+    param([string[]]$ExcludeTag)
     $tagArguments = @{}
     if (@($ExcludeTag).Count -gt 0) {
         $tagArguments.ExcludeTagFilter = $ExcludeTag
     }
 
-    Invoke-NovaTest @tagArguments
-    if (-not $SkipBuildValidation) {
-        Test-NovaBuild @tagArguments
+    return $tagArguments
+}
+
+function Invoke-CiTestPhase {
+    param([hashtable]$TagArguments, [switch]$SkipBuildValidation, [object]$ProjectInfo, [string]$OutputDirectory)
+    $unitCompleted = $false
+    $coverage = $null
+    try {
+        Invoke-NovaTest @TagArguments
+        $coverage = Get-CiUnitCoverageSnapshot -ProjectRoot $ProjectInfo.ProjectRoot
+        $unitCompleted = $true
+        Invoke-CiBuildValidation -TagArguments $TagArguments -SkipBuildValidation:$SkipBuildValidation
+    } finally {
+        Copy-CiArtifactsIfPresent -ProjectRoot $ProjectInfo.ProjectRoot -ArtifactsDirectory $OutputDirectory -ProjectName $ProjectInfo.ProjectName -SkipCoverage:$unitCompleted
+        Write-CiUnitCoverageSnapshot -Snapshot $coverage -ArtifactsDirectory $OutputDirectory
     }
 }
-catch {
+
+function Get-CiUnitCoverageSnapshot {
+    param([string]$ProjectRoot)
+    $path = Join-Path $ProjectRoot 'artifacts/coverage.xml'
+    if (-not (Test-Path -LiteralPath $path)) {
+        return $null
+    }
+    return [pscustomobject]@{ Bytes = [IO.File]::ReadAllBytes($path) }
+}
+
+function Write-CiUnitCoverageSnapshot {
+    param([object]$Snapshot, [string]$ArtifactsDirectory)
+    if ($null -eq $Snapshot) {
+        return
+    }
+    $path = [IO.Path]::GetFullPath((Join-Path $ArtifactsDirectory 'coverage.xml'))
+    Initialize-CiArtifactDirectory -DestinationPath $path
+    [IO.File]::WriteAllBytes($path, $Snapshot.Bytes)
+}
+
+function Invoke-CiBuildValidation {
+    param([hashtable]$TagArguments, [switch]$SkipBuildValidation)
+    if (-not $SkipBuildValidation) {
+        Test-NovaBuild @TagArguments
+    }
+}
+
+$testFailed = $false
+try {
+    $tagArguments = Get-CiTestTagArgument -ExcludeTag $ExcludeTag
+    Invoke-CiTestPhase -TagArguments $tagArguments -SkipBuildValidation:$SkipBuildValidation -ProjectInfo $projectInfo -OutputDirectory $OutputDirectory
+} catch {
     $testFailed = $true
     Write-Warning "Nova tests failed: $( $_.Exception.Message )"
-}
-finally {
-    Copy-CiArtifactsIfPresent -ProjectRoot $projectInfo.ProjectRoot -ArtifactsDirectory $OutputDirectory -ProjectName $projectInfo.ProjectName
 }
 
 if ($testFailed) {

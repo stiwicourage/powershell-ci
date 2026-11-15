@@ -11,23 +11,32 @@ BeforeAll {
 }
 
 Describe 'Invoke-ScriptAnalyzerCI helpers' {
-    It 'excludes only host-output diagnostics after <FailureCount> transient failures' -ForEach @(
-        @{ FailureCount = 0 }
-        @{ FailureCount = 1 }
-    ) {
-        $script:analyzerCallCount = 0
-        Mock Invoke-ScriptAnalyzer {
-            $script:analyzerCallCount++
-            if ($script:analyzerCallCount -le $FailureCount) {
-                throw [System.NullReferenceException]::new('transient analyzer failure')
+    Describe 'Transient retry scenarios' {
+        BeforeEach {
+            $script:analyzerCallCount = 0
+            Mock Invoke-ScriptAnalyzer {
+                $script:analyzerCallCount++
+                if ($script:analyzerCallCount -le $FailureCount) {
+                    throw [System.NullReferenceException]::new('transient analyzer failure')
+                }
+                return @()
             }
-            return @()
         }
 
-        Invoke-ScriptAnalyzerWithTransientRetry -Path 'sample.ps1' | Should -BeNullOrEmpty
+        It 'excludes only host-output diagnostics after <FailureCount> transient failures' -ForEach @(
+            @{ FailureCount = 0 }
+            @{ FailureCount = 1 }
+        ) {
+            Invoke-ScriptAnalyzerWithTransientRetry -Path 'sample.ps1' | Should -BeNullOrEmpty
+            Should -Invoke Invoke-ScriptAnalyzer -Exactly -Times ($FailureCount + 1) -ParameterFilter {
+                ($ExcludeRule -join ',') -eq 'PSAvoidUsingWriteHost'
+            }
+        }
 
-        Should -Invoke Invoke-ScriptAnalyzer -Exactly -Times ($FailureCount + 1) -ParameterFilter {
-            ($ExcludeRule -join ',') -eq 'PSAvoidUsingWriteHost'
+        It 'retries one transient analyzer null-reference failure' -ForEach @{ FailureCount = 1 } {
+            $result = @(Invoke-ScriptAnalyzerWithTransientRetry -Path 'sample.ps1')
+            $result | Should -BeNullOrEmpty
+            Should -Invoke Invoke-ScriptAnalyzer -Times 2
         }
     }
 
@@ -42,22 +51,6 @@ Describe 'Invoke-ScriptAnalyzerCI helpers' {
 
         @($result | Where-Object RuleName -EQ 'PSAvoidUsingWriteHost') | Should -BeNullOrEmpty
         $result.RuleName | Should -Contain 'PSUseApprovedVerbs'
-    }
-
-    It 'retries one transient analyzer null-reference failure' {
-        $script:analyzerCallCount = 0
-        Mock Invoke-ScriptAnalyzer {
-            $script:analyzerCallCount++
-            if ($script:analyzerCallCount -eq 1) {
-                throw [System.NullReferenceException]::new('transient analyzer failure')
-            }
-            return @()
-        }
-
-        $result = @(Invoke-ScriptAnalyzerWithTransientRetry -Path 'sample.ps1')
-
-        $result | Should -BeNullOrEmpty
-        Should -Invoke Invoke-ScriptAnalyzer -Times 2
     }
 
     It 'does not retry non-transient analyzer failures' {
@@ -75,15 +68,7 @@ Describe 'Invoke-ScriptAnalyzerCI helpers' {
     It 'includes tests and excludes generated directories from the analyzer scope' {
         $repositoryRoot = Join-Path $TestDrive 'repo'
         $script:ScriptAnalyzerPathList = @('src', 'scripts', 'tests', 'run.ps1')
-        $null = New-Item -ItemType Directory -Path (Join-Path $repositoryRoot 'src') -Force
-        $null = New-Item -ItemType Directory -Path (Join-Path $repositoryRoot 'tests') -Force
-        $null = New-Item -ItemType Directory -Path (Join-Path $repositoryRoot 'scripts') -Force
-        $null = New-Item -ItemType Directory -Path (Join-Path $repositoryRoot 'artifacts') -Force
-        $null = New-Item -ItemType Directory -Path (Join-Path $repositoryRoot 'dist') -Force
-        Set-Content -LiteralPath (Join-Path $repositoryRoot 'src/One.ps1') -Value 'function Get-One { }'
-        Set-Content -LiteralPath (Join-Path $repositoryRoot 'tests/One.Tests.ps1') -Value 'Describe "One" { }'
-        Set-Content -LiteralPath (Join-Path $repositoryRoot 'artifacts/Generated.ps1') -Value 'function Get-Generated { }'
-        Set-Content -LiteralPath (Join-Path $repositoryRoot 'dist/Generated.ps1') -Value 'function Get-DistGenerated { }'
+        Initialize-ScriptAnalyzerPathFixture -Path $repositoryRoot
 
         $pathList = @(Get-ScriptAnalyzerAnalysisPathList -RepositoryRoot $repositoryRoot)
         $relativePathList = @(
@@ -99,15 +84,13 @@ Describe 'Invoke-ScriptAnalyzerCI helpers' {
     }
 
     It 'converts ScriptAnalyzer results to repository-relative finding records' {
-        $resultList = @(
-            Get-FakeScriptAnalyzerResult -PropertyOverrides @{
+        $resultList = Get-FakeScriptAnalyzerResult -PropertyOverrides @{
                 Severity     = 'Warning'
                 RuleName     = 'Rule.One'
                 RelativePath = 'src/one.ps1'
                 Line         = 9
                 Message      = 'Repeated finding.'
-            }
-        )
+        }
 
         $findingList = ConvertTo-ScriptAnalyzerFindingRecordList -ResultList $resultList -RepositoryRoot $projectRoot
 
@@ -124,6 +107,21 @@ Describe 'Invoke-ScriptAnalyzerCI helpers' {
             -Formatter { param($item) $item }
 
         $section | Should -Be 'Findings by severity: none.'
+    }
+
+    It 'renders sorted severity rule file and detailed sections without changing report fields' {
+        $results = @(
+            Get-FakeScriptAnalyzerResult -PropertyOverrides @{ RelativePath = 'src/z.ps1'; RuleName = 'Rule.Z'; Line = 7 }
+            Get-FakeScriptAnalyzerResult -PropertyOverrides @{ RelativePath = 'src/a.ps1'; RuleName = 'Rule.A'; Severity = 'Error'; Line = 2 }
+        )
+        $findings = @(ConvertTo-ScriptAnalyzerFindingRecordList -ResultList $results -RepositoryRoot $projectRoot)
+        $report = Get-ScriptAnalyzerReportText -FindingList $findings -AnalyzedFileCount 2
+        $report | Should -Match 'Analyzed files: 2'
+        $report | Should -Match 'Total findings: 2'
+        $report | Should -Match 'Findings by severity:\s+- Error: 1\s+- Warning: 1'
+        $report | Should -Match 'Findings by rule:\s+- Rule.A: 1\s+- Rule.Z: 1'
+        $report | Should -Match 'Findings by file:\s+- src/a.ps1: 1\s+- src/z.ps1: 1'
+        $report | Should -Match 'Detailed findings:\s+- \[Error\] src/a.ps1:2 Rule.A - Test finding.\s+- \[Warning\] src/z.ps1:7 Rule.Z - Test finding.'
     }
 
     It 'does not reference the removed baseline mechanism' {
@@ -157,17 +155,7 @@ Describe 'Invoke-ScriptAnalyzerCI' {
         @{ Severity = 'Warning' }
         @{ Severity = 'Information' }
     ) {
-        Mock Get-ScriptAnalyzerResultList {
-            @(
-                Get-FakeScriptAnalyzerResult -PropertyOverrides @{
-                    Severity     = $Severity
-                    RuleName     = "Rule.$Severity"
-                    RelativePath = 'src/test.ps1'
-                    Line         = 4
-                    Message      = "$Severity finding."
-                }
-            )
-        }
+        Mock Get-ScriptAnalyzerResultList { @(Get-ScriptAnalyzerSeverityFixture -Severity $Severity) }
 
         {
             Invoke-ScriptAnalyzerCI -OutputDirectory './artifacts'
@@ -177,10 +165,7 @@ Describe 'Invoke-ScriptAnalyzerCI' {
     It 'fails when multiple findings exist' {
         Mock Get-ScriptAnalyzerResultList {
             @(
-                Get-FakeScriptAnalyzerResult -PropertyOverrides @{
-                    Severity = 'Warning'
-                    RuleName = 'Rule.One'
-                }
+                Get-FakeScriptAnalyzerResult -PropertyOverrides @{ Severity = 'Warning'; RuleName = 'Rule.One' }
                 Get-FakeScriptAnalyzerResult -PropertyOverrides @{
                     Severity = 'Information'
                     RuleName = 'Rule.Two'
@@ -227,27 +212,45 @@ Describe 'Invoke-ScriptAnalyzerCI script process behavior' {
         $process.StandardError | Should -BeNullOrEmpty
     }
 
-    It 'returns exit code 1 when findings exist' {
-        $harness = Get-ScriptAnalyzerHarness -Findings @(
-            [pscustomobject]@{
-                Severity     = 'Information'
-                RuleName     = 'Rule.Info'
-                RelativePath = 'src/Sample.ps1'
-                Line         = 1
-                Message      = 'Info finding.'
+    Describe 'Existing analyzer version pin in an owned root' {
+        BeforeEach {
+            $script:oldModuleRoot = $env:POWERSHELL_CI_MODULE_ROOT
+            $script:oldAnalyzerVersion = $script:RequiredPSScriptAnalyzerVersion
+            $script:analyzerOwner = New-CiDependencyRoot -Path (Join-Path $TestDrive 'powershell-ci-modules-analyzer')
+            $script:expectedAnalyzer = Initialize-ScriptAnalyzerVersionFixture -ModuleRoot $analyzerOwner.Path -Version 1.25.0
+            $script:higherAnalyzer = Initialize-ScriptAnalyzerVersionFixture -ModuleRoot $analyzerOwner.Path -Version 1.26.0
+            $script:availableAnalyzers = @(Get-Module -ListAvailable -Name @($expectedAnalyzer, $higherAnalyzer))
+            $env:POWERSHELL_CI_MODULE_ROOT = $analyzerOwner.Path
+            $script:RequiredPSScriptAnalyzerVersion = [version]'1.25.0'
+            Mock Import-Module {}
+            Mock Get-Module { $availableAnalyzers | Where-Object Path -EQ ([string]$Name) }
+            Mock Get-Module { @{ Version = [version]'1.25.0'; Path = $expectedAnalyzer } } -ParameterFilter { $Name -eq 'PSScriptAnalyzer' -and -not $ListAvailable }
+        }
+
+        AfterEach {
+            $env:POWERSHELL_CI_MODULE_ROOT = $oldModuleRoot
+            $script:RequiredPSScriptAnalyzerVersion = $oldAnalyzerVersion
+        }
+
+        It 'imports owned 1.25.0 even when owned 1.26.0 is available' {
+            Import-ScriptAnalyzerModule | Should -Be ([version]'1.25.0')
+            Should -Invoke Import-Module -Exactly -Times 1 -ParameterFilter {
+                $Name -eq $expectedAnalyzer -and $RequiredVersion -eq '1.25.0'
             }
-        )
+        }
+    }
+
+    It 'returns exit code 1 when findings exist' {
+        $finding = @{ Severity = 'Information'; RuleName = 'Rule.Info'; RelativePath = 'src/Sample.ps1'; Line = 1; Message = 'Info finding.' }
+        $harness = Get-ScriptAnalyzerHarness -Findings @([pscustomobject]$finding)
         $commandPath = Join-Path $TestDrive ([guid]::NewGuid().ToString('N') + '.ps1')
-        @(
-            '$env:PSModulePath = "{0}"' -f $harness.ModuleRoot
-            '$env:SCRIPTANALYZER_FAKE_REPOSITORY_ROOT = "{0}"' -f $harness.RepositoryRoot
-            '& "{0}" -ProjectRoot "{1}" -OutputDirectory "./artifacts"' -f $harness.ScriptPath, $harness.RepositoryRoot
-            'exit $LASTEXITCODE'
-        ) | Set-Content -LiteralPath $commandPath
+        Write-ScriptAnalyzerFixtureCommand -Path $commandPath -Harness $harness
 
         $process = Invoke-PwshProcess -ArgumentList @('-NoLogo', '-NoProfile', '-File', $commandPath)
 
         $process.ExitCode | Should -Be 1
+        $process.StandardError | Should -Match 'PSScriptAnalyzer reported'
+        Get-Content (Join-Path $harness.RepositoryRoot 'artifacts/scriptanalyzer.txt') -Raw | Should -Match 'Rule.Info'
     }
 
     It 'returns exit code 1 when the analyzer dependency is missing' {
@@ -257,11 +260,8 @@ Describe 'Invoke-ScriptAnalyzerCI script process behavior' {
         $emptyModuleRoot = Join-Path $TestDrive 'empty-modules'
         $null = New-Item -ItemType Directory -Path $emptyModuleRoot -Force
         $commandPath = Join-Path $TestDrive ([guid]::NewGuid().ToString('N') + '.ps1')
-        @(
-            '$env:PSModulePath = "{0}"' -f $emptyModuleRoot
-            '& "{0}" -ProjectRoot "{1}" -OutputDirectory "./artifacts"' -f $scriptPath, $repoRoot
-            'exit $LASTEXITCODE'
-        ) | Set-Content -LiteralPath $commandPath
+        $harness = @{ ModuleRoot = $emptyModuleRoot; RepositoryRoot = $repoRoot; ScriptPath = $scriptPath }
+        Write-ScriptAnalyzerFixtureCommand -Path $commandPath -Harness $harness
 
         $process = Invoke-PwshProcess -ArgumentList @('-NoLogo', '-NoProfile', '-File', $commandPath)
         $output = $process.StandardError

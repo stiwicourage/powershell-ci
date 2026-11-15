@@ -1,0 +1,14 @@
+name: Cleanup isolated PowerShell modules
+description: Remove only an ownership-validated disposable module root.
+inputs:
+  module-root:
+    description: Exact owned root emitted by install-ps-modules.
+    required: true
+runs:
+  using: composite
+  steps:
+    - shell: pwsh
+      env:
+        MODULE_ROOT: ${{ inputs.module-root }}
+      run: |
+        & "${{ github.action_path }}/Remove-CiModules.ps1" -ModuleRoot $env:MODULE_ROOT
