@@ -1,6 +1,6 @@
 BeforeAll {
     $root = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
-    $script:publish = Get-Content (Join-Path $root '.github/workflows/publish.yml') -Raw
+    $script:publishSource = Get-Content (Join-Path $root '.github/workflows/publish.yml') -Raw
     function Invoke-NovaRelease {
         param($Repository, $ApiKey, [switch]$SkipTests, [switch]$ContinuousIntegration)
         throw "Unmocked release for $Repository (key supplied=$([bool]$ApiKey), skip=$SkipTests, CI=$ContinuousIntegration)."
@@ -10,12 +10,17 @@ BeforeAll {
     function Test-NovaBuild { 'integration' }
     function Get-PublishStep {
         param([string]$Name)
-        $pattern = '(?ms)^      - name: ' + [regex]::Escape($Name) + '\n.*?(?=^      - name: |\z)'
+        $pattern = '(?ms)^      - name: ' + [regex]::Escape($Name) + '\r?\n.*?(?=^      - name: |\z)'
         return [regex]::Match($script:publish, $pattern).Value
     }
 }
 
-Describe 'Existing publish commands and branch guards' {
+Describe 'Existing publish commands and branch guards (<LineEnding>)' -ForEach @(
+    @{ LineEnding = 'LF'; NewLine = "`n" }
+    @{ LineEnding = 'CRLF'; NewLine = "`r`n" }
+) {
+    BeforeAll { $script:publish = $script:publishSource -replace '\r?\n', $NewLine }
+
     BeforeEach {
         $script:environment = @{}
         foreach ($name in @('GITHUB_OUTPUT', 'PSGALLERY_API', 'RELEASE_REPOSITORY', 'RELEASE_CI', 'POWERSHELL_CI_BOOTSTRAP', 'PESTER_REQUIRED_VERSION')) {
