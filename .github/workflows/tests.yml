@@ -7,6 +7,14 @@ on:
         description: Runner label for all jobs.
         type: string
         default: ubuntu-latest
+      dependency-mode:
+        description: legacy installs CurrentUser; isolated uses owned disposable dependencies.
+        type: string
+        default: legacy
+      pester-required-version:
+        description: Exact opt-in Pester version; empty preserves project defaults.
+        type: string
+        default: ''
       install-command:
         description: PowerShell command that installs CI modules; replaces install-modules when set.
         type: string
@@ -85,11 +93,27 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Validate dependency mode
+        env:
+          DEPENDENCY_MODE: ${{ inputs.dependency-mode }}
+          INSTALL_COMMAND: ${{ inputs.install-command }}
+        run: |
+          if ($env:DEPENDENCY_MODE -notin @('legacy', 'isolated')) {
+            throw 'Unsupported dependency-mode.'
+          }
+          if ($env:DEPENDENCY_MODE -eq 'isolated' -and $env:INSTALL_COMMAND) {
+            throw 'isolated mode cannot use install-command; use the shared owned installer.'
+          }
+
       - name: Install required CI PowerShell modules
+        id: ci_modules
         if: ${{ inputs.install-command == '' }}
         uses: stiwicourage/powershell-ci/actions/install-ps-modules@develop
         with:
           modules: ${{ inputs.install-modules }}
+          dependency-mode: ${{ inputs.dependency-mode }}
+          pester-required-version: ${{ inputs.pester-required-version }}
+          script-analyzer-required-version: ${{ inputs.script-analyzer-required-version }}
 
       - name: Install required CI PowerShell modules (custom command)
         if: ${{ inputs.install-command != '' }}
@@ -107,16 +131,31 @@ jobs:
         uses: stiwicourage/powershell-ci/actions/nova-test@develop
         with:
           build-validation: ${{ inputs.build-validation }}
+          pester-required-version: ${{ inputs.pester-required-version }}
 
       - name: Run CI tests and coverage (custom command)
         if: ${{ inputs.test-command != '' }}
-        run: ${{ inputs.test-command }}
+        env:
+          PESTER_REQUIRED_VERSION: ${{ inputs.pester-required-version }}
+        run: |
+          if ($env:POWERSHELL_CI_BOOTSTRAP) {
+            . $env:POWERSHELL_CI_BOOTSTRAP
+            Initialize-CiDependencyEnvironment
+          }
+          if ($env:PESTER_REQUIRED_VERSION) {
+            Import-Module Pester -RequiredVersion $env:PESTER_REQUIRED_VERSION -ErrorAction Stop
+          }
+          ${{ inputs.test-command }}
 
       - name: Validate changelog files with Test-KeepAChangelogFile
         if: ${{ inputs.changelog-files != '' }}
         env:
           CHANGELOG_FILES: ${{ inputs.changelog-files }}
         run: |
+          if ($env:POWERSHELL_CI_BOOTSTRAP) {
+            . $env:POWERSHELL_CI_BOOTSTRAP
+            Initialize-CiDependencyEnvironment
+          }
           foreach ($path in $env:CHANGELOG_FILES -split '\s+' | Where-Object { $_ }) {
             $result = Test-KeepAChangelogFile -Path $path
             if (-not $result.IsValid) {
@@ -136,6 +175,10 @@ jobs:
       - name: Generate report
         if: always()
         run: |
+          if ($env:POWERSHELL_CI_BOOTSTRAP) {
+            . $env:POWERSHELL_CI_BOOTSTRAP
+            Initialize-CiDependencyEnvironment
+          }
           $reportLines = @('## CI Output Files')
           foreach ($directory in @('./artifacts', './dist')) {
             $reportLines += @('', "### $directory", '')
@@ -154,6 +197,12 @@ jobs:
           $report = $reportLines -join [Environment]::NewLine
           Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value $report
           Write-Output $report
+
+      - name: Cleanup owned CI modules
+        if: ${{ always() && steps.ci_modules.outputs.module-root != '' }}
+        uses: stiwicourage/powershell-ci/actions/cleanup-ps-modules@develop
+        with:
+          module-root: ${{ steps.ci_modules.outputs.module-root }}
 
   codescene-coverage-gates:
     runs-on: ${{ inputs.runner }}
@@ -224,4 +273,9 @@ jobs:
           CS_URL: ${{ vars.CS_URL }}
           CS_PROJECT_ID: ${{ vars.CS_PROJECT_ID }}
           CS_ACCESS_TOKEN: ${{ secrets.CS_ACCESS_TOKEN }}
-        run: ${{ inputs.codescene-analysis-command }}
+        run: |
+          if ($env:POWERSHELL_CI_BOOTSTRAP) {
+            . $env:POWERSHELL_CI_BOOTSTRAP
+            Initialize-CiDependencyEnvironment
+          }
+          ${{ inputs.codescene-analysis-command }}

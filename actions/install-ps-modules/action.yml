@@ -18,43 +18,45 @@ inputs:
     description: Allow prerelease module versions.
     required: false
     default: 'true'
+  dependency-mode:
+    description: legacy installs CurrentUser; isolated saves into an owned temporary root.
+    required: false
+    default: legacy
+  pester-required-version:
+    description: Exact Pester version in isolated mode; empty preserves project requirements.
+    required: false
+    default: ''
+  script-analyzer-required-version:
+    description: Existing analyzer version requirement saved exactly in isolated mode.
+    required: false
+    default: ''
+
+outputs:
+  module-root:
+    description: Owned disposable root, empty in legacy mode.
+    value: ${{ steps.install.outputs.module-root }}
+  module-path:
+    description: Isolated module discovery path including native PSHOME modules.
+    value: ${{ steps.install.outputs.module-path }}
 
 runs:
   using: composite
   steps:
-    - shell: pwsh
+    - id: install
+      shell: pwsh
       env:
         MODULES: ${{ inputs.modules }}
         PROJECT_FILE: ${{ inputs.project-file }}
         REPOSITORY: ${{ inputs.repository }}
         ALLOW_PRERELEASE: ${{ inputs.allow-prerelease }}
+        DEPENDENCY_MODE: ${{ inputs.dependency-mode }}
+        PESTER_REQUIRED_VERSION: ${{ inputs.pester-required-version }}
+        SCRIPT_ANALYZER_REQUIRED_VERSION: ${{ inputs.script-analyzer-required-version }}
       run: |
         $ErrorActionPreference = 'Stop'
-        if (-not (Get-PSRepository -Name $env:REPOSITORY -ErrorAction SilentlyContinue)) {
-          if ($env:REPOSITORY -ne 'PSGallery') {
-            throw "PowerShell repository '$($env:REPOSITORY)' is not registered."
-          }
-          Register-PSRepository -Default
-        }
-        Set-PSRepository -Name $env:REPOSITORY -InstallationPolicy Trusted
-
-        $installArguments = @{
-          Repository = $env:REPOSITORY
-          Scope = 'CurrentUser'
-          Force = $true
-          ErrorAction = 'Stop'
-        }
-        if ($env:ALLOW_PRERELEASE -eq 'true') { $installArguments.AllowPrerelease = $true }
-
-        $names = @($env:MODULES -split '[\s,]+' | Where-Object { $_ })
-        if ($env:PROJECT_FILE -and (Test-Path -LiteralPath $env:PROJECT_FILE)) {
-          $project = Get-Content -LiteralPath $env:PROJECT_FILE -Raw | ConvertFrom-Json
-          $names += @($project.Manifest.RequiredModules | ForEach-Object { if ($_ -is [string]) { $_ } else { $_.ModuleName } })
-        }
-
-        foreach ($name in $names | Where-Object { $_ } | Select-Object -Unique) {
-          Write-Output "Installing PowerShell module '$name'..."
-          Install-Module -Name $name @installArguments
-          $installed = Get-InstalledModule -Name $name | Sort-Object Version -Descending | Select-Object -First 1
-          Write-Output "Installed '$($installed.Name)' $($installed.Version) from '$($installed.Repository)'."
-        }
+        & "${{ github.action_path }}/Install-CiModules.ps1" `
+          -Modules @($env:MODULES -split '[\s,]+' | Where-Object { $_ }) `
+          -ProjectFile $env:PROJECT_FILE -Repository $env:REPOSITORY `
+          -AllowPrerelease ($env:ALLOW_PRERELEASE -eq 'true') `
+          -DependencyMode $env:DEPENDENCY_MODE -PesterRequiredVersion $env:PESTER_REQUIRED_VERSION `
+          -ScriptAnalyzerRequiredVersion $env:SCRIPT_ANALYZER_REQUIRED_VERSION

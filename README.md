@@ -64,6 +64,70 @@ native-credential matrix are also project-owned.
 CodeScene helper scripts still differ between projects. Consolidating them into
 this repository is the next step; until then they are the main source of drift.
 
+## Opt-in isolated dependencies
+
+Existing callers retain `dependency-mode: legacy`, CurrentUser installation,
+repository behavior, custom commands and all previous inputs. No global
+installation is performed when `dependency-mode: isolated` is selected.
+
+| Reusable input | Default | Behavior |
+| --- | --- | --- |
+| `dependency-mode` (tests/publish) | `legacy` | `isolated` saves dependencies into an owned temporary root |
+| `pester-required-version` (tests/publish) | empty | Exact isolated Pester version; tests import it before Nova |
+
+The installer combines module names with string/object `Manifest.RequiredModules`
+from `project.json`. Isolated mode preserves `RequiredVersion`, `ModuleVersion`
+(minimum), `MinimumVersion` and `MaximumVersion`, intersects repeated constraints
+and rejects conflicts before downloading. It always requires PSResourceGet
+1.2.0; consumers should request their exact Pester version, for example 5.7.1.
+Add project-specific build tools, such as `Microsoft.PowerShell.PlatyPS`, through
+`install-modules` or the project requirements rather than changing shared defaults.
+
+`actions/install-ps-modules` exposes `module-root` and `module-path`, empty in
+legacy mode. In isolated mode it writes the validated module discovery path to
+`GITHUB_ENV`. Fresh `pwsh` processes prepend ambient discovery directories at
+startup, so the shared PowerShell steps/actions reapply an ownership-validated
+bootstrap before consuming modules. Custom child processes must also dot-source
+`$env:POWERSHELL_CI_BOOTSTRAP` and call `Initialize-CiDependencyEnvironment`
+before imports. The installer does this in its fresh-process import probe before
+publishing outputs. Discovery then contains only owned modules and native
+`PSHOME/Modules`. Native PowerShellGet 2.2.5 and
+PackageManagement 1.4.8.1 are required; runners missing them fail closed.
+Dependency import paths and runtime versions are recorded in the owned root.
+Nova tests with an exact Pester request also write
+`artifacts/runtime-evidence.json` (or the selected output directory).
+
+Isolated mode requires the official PSGallery v2 endpoint. Existing registrations
+and trust are not changed. A temporary default registration is removed only
+while its source and Untrusted policy still match. Download/import failures
+remove the newly owned root. Temporary parents are resolved to physical paths
+before creating the marker. Cleanup compares the marker with an independently
+retained token; altered ownership fails closed. The reusable workflows run ownership-validated
+`actions/cleanup-ps-modules` under `always()`, after artifacts/consumers.
+
+Custom `install-command` remains supported in legacy mode but cannot be combined
+with isolated mode: a custom installer cannot establish the shared ownership
+contract. Existing test/build overrides remain supported. Source coverage,
+thresholds and exclusions remain the consumer project's responsibility.
+
+The existing shared analyzer remains authoritative: it fails on every returned
+finding, including Information, and excludes only `PSAvoidUsingWriteHost` by
+default. Its existing `analysis-paths`, `exclude-rules` and `required-version`
+inputs remain unchanged.
+In isolated tests, the existing `script-analyzer-required-version` also pins the
+saved analyzer dependency. The analyzer imports that owned version by its exact
+path, even when a newer saved version exists; no CurrentUser fallback is used.
+
+Nova orchestration preserves `build,unit,integration` output, forwards exclusions
+to both test phases, and snapshots unit coverage so integration cannot overwrite
+the collected JaCoCo report, including when the output is `artifacts` itself.
+
+During coordinated testing references remain `@develop`. This does not freeze
+transitive actions in previously released workflows. A real release and stable
+internal/caller references require a separate user-owned release checkpoint.
+`scripts/Set-InternalActionRefs.ps1` is the existing reference-update helper;
+this migration neither invokes it nor changes `version.json`.
+
 ## Releasing
 
 Versions follow Semantic Versioning with immutable tags **without a `v`

@@ -12,6 +12,8 @@ runs:
   steps:
     - shell: pwsh
       run: |
+        . "${{ github.action_path }}/../install-ps-modules/CiDependencyRoot.ps1"
+        Initialize-CiDependencyEnvironment
         $repositoryName = '${{ inputs.repository-name }}'
         $psResourcePath = Join-Path $HOME '.local/share/PSResourceGet'
         New-Item -ItemType Directory -Path $psResourcePath -Force | Out-Null
