@@ -12,8 +12,8 @@ BeforeAll {
     }
 
     function Invoke-CiPinnedRunnerFixture {
-        param([object]$Owner, [string]$Project, [string]$Runner)
-        $command = '$env:POWERSHELL_CI_MODULE_ROOT="{0}"; $env:POWERSHELL_CI_OWNER_TOKEN="{1}"; & "{2}" -ProjectRoot "{3}" -OutputDirectory "{3}/published" -PesterRequiredVersion 5.7.1' -f $Owner.Path, $Owner.Token, $Runner, $Project
+        param([object]$Owner, [string]$Project, [string]$Runner, [string]$TestIsolation = 'session')
+        $command = '$env:POWERSHELL_CI_MODULE_ROOT="{0}"; $env:POWERSHELL_CI_OWNER_TOKEN="{1}"; & "{2}" -ProjectRoot "{3}" -OutputDirectory "{3}/published" -PesterRequiredVersion 5.7.1 -TestIsolation {4}' -f $Owner.Path, $Owner.Token, $Runner, $Project, $TestIsolation
         $output = @(& (Get-Process -Id $PID).Path -NoLogo -NoProfile -Command $command 2>&1)
         return @{ ExitCode = $LASTEXITCODE; Output = @($output | ForEach-Object { $_.ToString() }) }
     }
@@ -55,8 +55,11 @@ Describe 'Pinned isolated Nova runner with a workspace SUT' {
 
     AfterEach { Remove-CiDependencyRoot -Owner $owner }
 
-    It 'imports the workspace SUT and reaches both phases and reports with owned pinned Pester' {
-        $result = Invoke-CiPinnedRunnerFixture -Owner $owner -Project $project -Runner $runner
+    It 'imports the workspace SUT and reaches both phases and reports with owned pinned Pester (<TestIsolation>)' -ForEach @(
+        @{ TestIsolation = 'session' }
+        @{ TestIsolation = 'process' }
+    ) {
+        $result = Invoke-CiPinnedRunnerFixture -Owner $owner -Project $project -Runner $runner -TestIsolation $TestIsolation
         $result.ExitCode | Should -Be 0 -Because ($result.Output -join "`n")
         $result.Output -join ',' | Should -BeExactly 'build,unit,integration'
         (Get-Content "$project/published/coverage.xml" -Raw).Trim() | Should -BeExactly '<report name="unit" />'

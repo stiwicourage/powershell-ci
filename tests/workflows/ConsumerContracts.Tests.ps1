@@ -23,6 +23,15 @@ Describe 'Shared opt-in workflow contracts' {
         $text | Should -Not -Match '(?i)codecov'
     }
 
+    It 'exposes session test isolation by default and forwards it to nova-test' {
+        $workflow = Get-Content (Join-Path $root '.github/workflows/tests.yml') -Raw
+        $action = Get-Content (Join-Path $root 'actions/nova-test/action.yml') -Raw
+        $workflow | Should -Match 'test-isolation:\s+description:[^\n]+\s+type: string\s+default: session'
+        $workflow | Should -Match 'test-isolation: \$\{\{ inputs.test-isolation \}\}'
+        $action | Should -Match 'test-isolation:\s+description:[^\n]+\s+required: false\s+default: session'
+        $action | Should -Match '-TestIsolation \$env:TEST_ISOLATION'
+    }
+
     It 'feeds the existing analyzer version input into isolated dependency selection' {
         $text = Get-Content (Join-Path $root '.github/workflows/tests.yml') -Raw
         $text | Should -Match 'script-analyzer-required-version: \$\{\{ inputs.script-analyzer-required-version \}\}'

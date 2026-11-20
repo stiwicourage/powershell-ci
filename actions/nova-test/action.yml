@@ -18,6 +18,10 @@ inputs:
     description: Optional exact Pester import before Nova; empty preserves legacy behavior.
     required: false
     default: ''
+  test-isolation:
+    description: session runs Invoke-NovaTest and Test-NovaBuild in the runner session; process runs each in a fresh PowerShell process.
+    required: false
+    default: session
 
 runs:
   using: composite
@@ -29,11 +33,13 @@ runs:
         EXCLUDE_TAGS: ${{ inputs.exclude-tags }}
         OUTPUT_DIRECTORY: ${{ inputs.output-directory }}
         PESTER_REQUIRED_VERSION: ${{ inputs.pester-required-version }}
+        TEST_ISOLATION: ${{ inputs.test-isolation }}
       run: |
         & "${{ github.action_path }}/Invoke-NovaTestCI.ps1" `
           -ProjectRoot $env:GITHUB_WORKSPACE `
           -OutputDirectory $env:OUTPUT_DIRECTORY `
           -ExcludeTag @($env:EXCLUDE_TAGS -split '\s+' | Where-Object { $_ }) `
           -SkipBuildValidation:($env:BUILD_VALIDATION -ne 'true') `
-          -PesterRequiredVersion $env:PESTER_REQUIRED_VERSION
+          -PesterRequiredVersion $env:PESTER_REQUIRED_VERSION `
+          -TestIsolation $env:TEST_ISOLATION
         exit $LASTEXITCODE

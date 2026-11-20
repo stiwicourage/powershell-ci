@@ -58,6 +58,14 @@ example `Invoke-SemanticReleaseCI.ps1` or PSModuleUpdate's lane/gate scripts,
 remain in their repositories. Platform matrices such as GerberCore's
 native-credential matrix are also project-owned.
 
+`test-isolation` controls where the shared `nova-test` action runs the Nova
+test commands. The default `session` runs `Invoke-NovaTest` and
+`Test-NovaBuild` in the runner session, as before. `process` runs each command
+in its own fresh PowerShell process with the same dependency root, Pester
+version, NovaModuleTools and freshly built module. Use `process` when the
+project under test is a module that the test tooling also loads, such as
+NovaModuleTools itself. A failing unit run stops before `Test-NovaBuild`.
+
 ## Known follow-up
 
 `Invoke-NovaModuleToolsCI.ps1` and the

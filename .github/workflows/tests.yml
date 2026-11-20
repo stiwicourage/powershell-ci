@@ -39,6 +39,10 @@ on:
         description: Also run Test-NovaBuild after Invoke-NovaTest. Ignored when test-command is set.
         type: boolean
         default: true
+      test-isolation:
+        description: session runs Nova tests in the runner session; process runs each Nova test command in a fresh PowerShell process. Ignored when test-command is set.
+        type: string
+        default: session
       test-command:
         description: Optional PowerShell command that replaces the shared nova-test action. It must write artifacts/coverage.xml.
         type: string
@@ -132,6 +136,7 @@ jobs:
         with:
           build-validation: ${{ inputs.build-validation }}
           pester-required-version: ${{ inputs.pester-required-version }}
+          test-isolation: ${{ inputs.test-isolation }}
 
       - name: Run CI tests and coverage (custom command)
         if: ${{ inputs.test-command != '' }}

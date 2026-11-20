@@ -3,7 +3,8 @@ param(
     [string]$OutputDirectory = './artifacts',
     [string[]]$ExcludeTag = @(),
     [switch]$SkipBuildValidation,
-    [string]$PesterRequiredVersion = ''
+    [string]$PesterRequiredVersion = '',
+    [ValidateSet('session', 'process')][string]$TestIsolation = 'session'
 )
 
 Set-StrictMode -Version Latest
@@ -107,7 +108,7 @@ function Invoke-CiTestPhase {
     $unitCompleted = $false
     $coverage = $null
     try {
-        Invoke-NovaTest @TagArguments
+        Invoke-CiNovaCommand -CommandName 'Invoke-NovaTest' -TagArguments $TagArguments
         $coverage = Get-CiUnitCoverageSnapshot -ProjectRoot $ProjectInfo.ProjectRoot
         $unitCompleted = $true
         Invoke-CiBuildValidation -TagArguments $TagArguments -SkipBuildValidation:$SkipBuildValidation
@@ -139,10 +140,39 @@ function Write-CiUnitCoverageSnapshot {
 function Invoke-CiBuildValidation {
     param([hashtable]$TagArguments, [switch]$SkipBuildValidation)
     if (-not $SkipBuildValidation) {
-        Test-NovaBuild @TagArguments
+        Invoke-CiNovaCommand -CommandName 'Test-NovaBuild' -TagArguments $TagArguments
     }
 }
 
+function Invoke-CiNovaCommand {
+    param([string]$CommandName, [hashtable]$TagArguments)
+    if ($null -eq $script:CiTestProcess) {
+        & $CommandName @TagArguments
+        return
+    }
+    $process = $script:CiTestProcess
+    & (Get-Process -Id $PID).Path -NoLogo -NoProfile -File (Join-Path $PSScriptRoot 'Invoke-NovaTestProcess.ps1') `
+        -ProjectRoot $process.ProjectRoot -ProjectName $process.ProjectName -BuiltModulePath $process.BuiltModulePath `
+        -CommandName $CommandName -ExcludeTagList (@($TagArguments['ExcludeTagFilter']) -join ',') -PesterRequiredVersion $process.PesterRequiredVersion
+    if ($LASTEXITCODE -ne 0) {
+        throw "$CommandName failed in a fresh PowerShell process (exit code $LASTEXITCODE)."
+    }
+}
+
+function Get-CiTestProcess {
+    param([string]$TestIsolation, [object]$ProjectInfo, [string]$BuiltModulePath, [string]$PesterRequiredVersion)
+    if ($TestIsolation -ne 'process') {
+        return $null
+    }
+    return @{
+        ProjectRoot = $ProjectInfo.ProjectRoot
+        ProjectName = $ProjectInfo.ProjectName
+        BuiltModulePath = $BuiltModulePath
+        PesterRequiredVersion = $PesterRequiredVersion
+    }
+}
+
+$script:CiTestProcess = Get-CiTestProcess -TestIsolation $TestIsolation -ProjectInfo $projectInfo -BuiltModulePath $builtModulePath -PesterRequiredVersion $PesterRequiredVersion
 $testFailed = $false
 try {
     $tagArguments = Get-CiTestTagArgument -ExcludeTag $ExcludeTag
