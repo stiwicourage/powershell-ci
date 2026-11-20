@@ -82,7 +82,7 @@ jobs:
           git checkout develop
           git reset --hard '${{ steps.commit_release.outputs.has-changes == 'true' && steps.commit_release.outputs.commit-sha || github.sha }}'
 
-          $next = Get-SemanticReleaseNextVersion -CurrentVersion ([semver]$env:VERSION) -Label Patch -PreviewRelease
+          $next = Get-SemanticReleaseNextVersion -CurrentVersion ([semver]$env:VERSION) -Label Patch -Preview
           [ordered]@{ Version = "$($next.NewVersion)" } | ConvertTo-Json | Set-Content ./version.json
 
       - name: Create verified develop commit
