@@ -24,7 +24,7 @@ Use this file for any change to the shared actions, reusable workflows, scripts,
 - Never move `[Unreleased]` into a version section, add release dates or edit `version.json` by hand. `.github/workflows/release.yml` does this on `main`:
     1. SemanticRelease infers the version from the Conventional Commits since the last tag and writes `version.json`.
     2. `scripts/Move-ReleaseNotes.ps1` moves `[Unreleased]` in both files into `## [<version>] - <date>` with KeepAChangelog and stops the release when either section is empty.
-    3. The verified `chore(release): <version>` commit contains `version.json`, `CHANGELOG.md` and `RELEASE_NOTE.md`.
+    3. `scripts/Set-InternalActionRefs.ps1` pins every powershell-ci reference in `examples/` to the new version. The verified `chore(release): <version>` commit contains `version.json`, `CHANGELOG.md`, `RELEASE_NOTE.md` and `examples/`.
     4. The annotated tag message is the released `CHANGELOG.md` section; the GitHub release text is the released `RELEASE_NOTE.md` section.
     5. `develop` is reset to the release commit and bumped to the next preview version.
 - Tags have no `v` prefix (`0.4.0`). Commit types decide the version: `fix:` patch, `feat:` minor, `!` or an uppercase `BREAKING CHANGE:` footer major.

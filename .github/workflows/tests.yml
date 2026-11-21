@@ -101,6 +101,18 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Check out powershell-ci actions
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ job.workflow_repository }}
+          ref: ${{ job.workflow_sha }}
+          path: .powershell-ci
+          sparse-checkout: actions
+          persist-credentials: false
+
+      - name: Keep powershell-ci actions out of project changes
+        run: Add-Content -LiteralPath (Join-Path (git rev-parse --git-dir) "info/exclude") -Value "/.powershell-ci/"
+
       - name: Validate dependency mode
         env:
           DEPENDENCY_MODE: ${{ inputs.dependency-mode }}
@@ -116,7 +128,7 @@ jobs:
       - name: Install required CI PowerShell modules
         id: ci_modules
         if: ${{ inputs.install-command == '' }}
-        uses: stiwicourage/powershell-ci/actions/install-ps-modules@develop
+        uses: ./.powershell-ci/actions/install-ps-modules
         with:
           modules: ${{ inputs.install-modules }}
           dependency-mode: ${{ inputs.dependency-mode }}
@@ -129,7 +141,7 @@ jobs:
 
       - name: Run PSScriptAnalyzer
         if: ${{ inputs.script-analyzer-enabled }}
-        uses: stiwicourage/powershell-ci/actions/script-analyzer@develop
+        uses: ./.powershell-ci/actions/script-analyzer
         with:
           analysis-paths: ${{ inputs.script-analyzer-paths }}
           required-version: ${{ inputs.script-analyzer-required-version }}
@@ -137,7 +149,7 @@ jobs:
 
       - name: Run CI tests and coverage
         if: ${{ inputs.test-command == '' }}
-        uses: stiwicourage/powershell-ci/actions/nova-test@develop
+        uses: ./.powershell-ci/actions/nova-test
         with:
           build-validation: ${{ inputs.build-validation }}
           pester-required-version: ${{ inputs.pester-required-version }}
@@ -210,7 +222,7 @@ jobs:
 
       - name: Cleanup owned CI modules
         if: ${{ always() && steps.ci_modules.outputs.module-root != '' }}
-        uses: stiwicourage/powershell-ci/actions/cleanup-ps-modules@develop
+        uses: ./.powershell-ci/actions/cleanup-ps-modules
         with:
           module-root: ${{ steps.ci_modules.outputs.module-root }}
 
@@ -224,6 +236,18 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Check out powershell-ci actions
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ job.workflow_repository }}
+          ref: ${{ job.workflow_sha }}
+          path: .powershell-ci
+          sparse-checkout: actions
+          persist-credentials: false
+
+      - name: Keep powershell-ci actions out of project changes
+        run: Add-Content -LiteralPath (Join-Path (git rev-parse --git-dir) "info/exclude") -Value "/.powershell-ci/"
+
       - name: Download CI artifacts
         uses: actions/download-artifact@v4
         with:
@@ -231,7 +255,7 @@ jobs:
           path: coverage/
 
       - name: Check coverage gates in CodeScene
-        uses: stiwicourage/powershell-ci/actions/check-coverage@develop
+        uses: ./.powershell-ci/actions/check-coverage
         with:
           access-token: ${{ secrets.CS_ACCESS_TOKEN }}
           project-url: ${{ format('{0}/v2/projects/{1}', vars.CS_URL, vars.CS_PROJECT_ID) }}
@@ -253,6 +277,18 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Check out powershell-ci actions
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ job.workflow_repository }}
+          ref: ${{ job.workflow_sha }}
+          path: .powershell-ci
+          sparse-checkout: actions
+          persist-credentials: false
+
+      - name: Keep powershell-ci actions out of project changes
+        run: Add-Content -LiteralPath (Join-Path (git rev-parse --git-dir) "info/exclude") -Value "/.powershell-ci/"
+
       - name: Download CI artifacts
         uses: actions/download-artifact@v4
         with:
@@ -261,7 +297,7 @@ jobs:
 
       - name: Upload coverage to CodeScene and trigger analysis
         if: ${{ inputs.codescene-analysis-command == '' }}
-        uses: stiwicourage/powershell-ci/actions/codescene-analysis@develop
+        uses: ./.powershell-ci/actions/codescene-analysis
         with:
           url: ${{ vars.CS_URL }}
           project-id: ${{ vars.CS_PROJECT_ID }}

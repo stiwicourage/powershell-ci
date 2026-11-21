@@ -83,7 +83,7 @@ Describe 'Existing publish commands and branch guards (<LineEnding>)' -ForEach @
         $publish.IndexOf('- name: Create GitHub release') | Should -BeGreaterThan $publish.IndexOf('- name: Create annotated release tag')
         $step = Get-PublishStep -Name 'Create GitHub release'
         $step | Should -Match "steps.commit_release.outputs.has-changes == 'true'"
-        $step | Should -Match 'uses: stiwicourage/powershell-ci/actions/create-github-release@develop'
+        $step | Should -Match 'uses: \./\.powershell-ci/actions/create-github-release\r?\n'
         $step | Should -Match 'tag-name: \$\{\{ steps.release.outputs.release_version \}\}'
         $step | Should -Match 'notes-file: \$\{\{ steps.release.outputs.notes_path \}\}'
     }

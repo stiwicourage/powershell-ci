@@ -19,5 +19,6 @@ Use this file when a project is set up to call powershell-ci, when an existing p
 
 ## Rules for changes in this repository
 
-- `examples/dependabot.yml` and the pinned tags in `examples/` are part of the consumer contract; `tests/workflows/ConsumerContracts.Tests.ps1` guards them.
+- `examples/dependabot.yml` and the pinned tags in `examples/` are part of the consumer contract; `tests/workflows/ConsumerContracts.Tests.ps1` guards them. `release.yml` pins the examples to each new release, so do not bump them by hand.
+- Reusable workflows run their actions from their own commit: check out `job.workflow_repository` at `job.workflow_sha` into `.powershell-ci`, add it to `.git/info/exclude` and use `./.powershell-ci/actions/<name>`. Never reference `stiwicourage/powershell-ci/actions/<name>@develop` or a tag; `tests/workflows/InternalActionRefs.Tests.ps1` guards this.
 - When onboarding requirements change, update this file, `README.md` and `examples/` together, with `[Unreleased]` entries according to `release-policy.instructions.md`.

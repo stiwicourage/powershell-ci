@@ -64,6 +64,12 @@ jobs:
           $result.TagMessage >> $env:GITHUB_OUTPUT
           "$delimiter" >> $env:GITHUB_OUTPUT
 
+      - name: Pin examples to the release version
+        if: ${{ steps.version.outputs.needs_release == 'true' }}
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: ./scripts/Set-InternalActionRefs.ps1 -Ref $env:VERSION -Path ./examples
+
       - name: Create verified release commit
         id: commit_release
         if: ${{ steps.version.outputs.needs_release == 'true' }}

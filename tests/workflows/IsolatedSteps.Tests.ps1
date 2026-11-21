@@ -19,7 +19,7 @@ Describe 'Each isolated PowerShell step initializes discovery before consumers' 
     ) {
         $steps = Get-WorkflowConsumerStep -Workflow $Workflow
         foreach ($step in $steps) {
-            if ($step.Value -notmatch '        run:' -or $step.Value -match 'name: (Validate dependency mode|Install required|Install CodeScene)') { continue }
+            if ($step.Value -notmatch '        run:' -or $step.Value -match 'name: (Validate dependency mode|Keep powershell-ci actions out|Install required|Install CodeScene)') { continue }
             $step.Value | Should -Match 'POWERSHELL_CI_BOOTSTRAP'
             $step.Value | Should -Match 'Initialize-CiDependencyEnvironment'
         }

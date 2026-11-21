@@ -1,0 +1,6 @@
+# job.workflow_repository and job.workflow_sha are documented GitHub contexts
+# that actionlint does not know yet (rhysd/actionlint#707).
+paths:
+  .github/workflows/{tests,publish}.yml:
+    ignore:
+      - 'property "workflow_(repository|sha)" is not defined in object type'

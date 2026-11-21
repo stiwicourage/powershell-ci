@@ -14,6 +14,8 @@ This file summarizes the release notes for powershell-ci. **UNRELEASED** changes
 
 - GitHub releases of `powershell-ci` now show these release notes, and annotated tags contain the matching `CHANGELOG.md` section.
 - `publish.yml` no longer fails when a project has no `RELEASE_NOTE.md`.
+- `tests.yml` and `publish.yml` now always run the actions from the powershell-ci version you pin, instead of the latest `develop` actions. No caller changes are needed; the jobs add a `.powershell-ci` checkout that is excluded from your Git changes.
+- The files in `examples/` always reference the newest powershell-ci release.
 
 ### Deprecated
 

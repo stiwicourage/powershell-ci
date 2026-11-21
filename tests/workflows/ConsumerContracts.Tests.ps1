@@ -12,7 +12,7 @@ Describe 'Shared opt-in workflow contracts' {
         $text | Should -Match 'pester-required-version:'
         $text | Should -Match 'id: ci_modules'
         $text | Should -Match 'always\(\).*module-root'
-        $text | Should -Match 'actions/cleanup-ps-modules@develop'
+        $text | Should -Match 'uses: \./\.powershell-ci/actions/cleanup-ps-modules\r?\n'
         $text | Should -Match 'isolated mode cannot use install-command'
     }
 

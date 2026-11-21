@@ -33,12 +33,12 @@ in all six projects that had them.
 ## Using it
 
 A project keeps only a thin caller workflow that owns triggers, permissions and
-inputs. See `examples/`. Reference a released tag (or `@develop` while testing):
+inputs. See `examples/`. Reference a released tag:
 
 ```yaml
 jobs:
   tests:
-    uses: stiwicourage/powershell-ci/.github/workflows/tests.yml@develop
+    uses: stiwicourage/powershell-ci/.github/workflows/tests.yml@0.4.0
     secrets: inherit
 ```
 
@@ -148,18 +148,18 @@ Nova orchestration preserves `build,unit,integration` output, forwards exclusion
 to both test phases, and snapshots unit coverage so integration cannot overwrite
 the collected JaCoCo report, including when the output is `artifacts` itself.
 
-During coordinated testing references remain `@develop`. This does not freeze
-transitive actions in previously released workflows. A real release and stable
-internal/caller references require a separate user-owned release checkpoint.
-`scripts/Set-InternalActionRefs.ps1` is the existing reference-update helper;
-this migration neither invokes it nor changes `version.json`.
+The reusable `tests.yml` and `publish.yml` check out their own commit
+(`job.workflow_repository` at `job.workflow_sha`) into `.powershell-ci` and
+run the actions from there (`./.powershell-ci/actions/<name>`). A caller that
+pins `@0.4.0` therefore always runs the 0.4.0 actions; there are no internal
+`@develop` or tag references to maintain. The checkout is added to the
+project's `.git/info/exclude` so it never ends up in release commits.
 
 ## Releasing
 
 Versions follow Semantic Versioning with immutable tags **without a `v`
 prefix** (`0.1.0`, `0.2.0`, ...). While the workflows are being validated they
-are `0.x` and callers reference `@develop`. The workflows reference the
-actions as `stiwicourage/powershell-ci/actions/<name>@<ref>`. To cut a release:
+are `0.x`. To cut a release:
 
 1. Merge to `main` using Conventional Commits (`feat:`, `fix:`, `feat!:`).
 2. `.github/workflows/release.yml` runs on every push to `main` (or manually).
@@ -179,10 +179,10 @@ actions as `stiwicourage/powershell-ci/actions/<name>@<ref>`. To cut a release:
    Like the Nova publish flow, this force-updates `develop`, so keep unmerged
    work on feature branches.
 
-The default `GITHUB_TOKEN` cannot change files under `.github/workflows/`, so
-the release does not rewrite the internal `@develop` references to the release
-tag. Callers that need an immutable reference should pin the release tag or
-commit SHA of the workflow they call.
+Before the release commit, `scripts/Set-InternalActionRefs.ps1` pins every
+`stiwicourage/powershell-ci/...` reference in `examples/` to the version being
+released, so the examples always show the newest tag without a follow-up pull
+request.
 
 Contributors add every caller-visible change under `[Unreleased]` in
 `CHANGELOG.md` (full history) and `RELEASE_NOTE.md` (caller summary) in the
@@ -193,6 +193,6 @@ three operating systems, actionlint and Keep a Changelog validation of both
 files); the other workflows are reusable
 (`workflow_call`) and only run when a project calls them.
 
-Callers pin the tag, for example `@0.1.0`; Dependabot's `github-actions`
+Callers pin the tag, for example `@0.4.0`; Dependabot's `github-actions`
 ecosystem then proposes new tags. Create `1.0.0` only once the inputs and
 behavior are considered stable.

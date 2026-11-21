@@ -24,6 +24,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - The annotated release tag message now contains the released version's `CHANGELOG.md` section instead of only the version number.
 - `release.yml` now stops before creating any release commit, tag or GitHub release when `CHANGELOG.md` or `RELEASE_NOTE.md` has no entries under `[Unreleased]`.
 - `publish.yml` no longer requires `RELEASE_NOTE.md`; projects without it are released with only `CHANGELOG.md` moved.
+- `tests.yml` and `publish.yml` now run the powershell-ci actions from the same commit as the called workflow. Each job checks out `job.workflow_repository` at `job.workflow_sha` into `.powershell-ci` (excluded from the project's Git changes) instead of referencing `stiwicourage/powershell-ci/actions/<name>@develop`. A caller pinned to a tag no longer picks up unreleased action changes from `develop`.
+- `release.yml` pins every powershell-ci reference in `examples/` to the version being released, in the release commit. `scripts/Set-InternalActionRefs.ps1` now targets `examples/` by default.
+- The examples and the `README.md` usage example now reference `0.4.0`.
 
 ### Deprecated
 

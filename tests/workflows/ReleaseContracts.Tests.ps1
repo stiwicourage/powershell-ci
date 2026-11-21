@@ -9,6 +9,17 @@ BeforeAll {
     }
 }
 
+Describe 'Release workflow example pinning' {
+    It 'pins the examples to the release version before the release commit' {
+        $step = Get-ReleaseStep -Name 'Pin examples to the release version'
+        $step | Should -Match "if: \$\{\{ steps\.version\.outputs\.needs_release == 'true' \}\}"
+        $step | Should -Match 'VERSION: \$\{\{ steps\.version\.outputs\.version \}\}'
+        $step | Should -Match './scripts/Set-InternalActionRefs.ps1 -Ref \$env:VERSION -Path ./examples'
+        $stepNames.IndexOf('Pin examples to the release version') | Should -BeGreaterThan $stepNames.IndexOf('Determine next version from Conventional Commits')
+        $stepNames.IndexOf('Pin examples to the release version') | Should -BeLessThan $stepNames.IndexOf('Create verified release commit')
+    }
+}
+
 Describe 'Release workflow changelog and release-note contract' {
     It 'installs KeepAChangelog next to SemanticRelease' {
         Get-ReleaseStep -Name 'Install release tooling' | Should -Match 'modules: SemanticRelease KeepAChangelog'
