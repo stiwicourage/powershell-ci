@@ -28,10 +28,10 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Install SemanticRelease
+      - name: Install release tooling
         uses: ./actions/install-ps-modules
         with:
-          modules: SemanticRelease
+          modules: SemanticRelease KeepAChangelog
 
       - name: Determine next version from Conventional Commits
         id: version
@@ -48,6 +48,21 @@ jobs:
             Write-Output "No new commits since the last tag or tag $version exists; nothing to release."
             git checkout -- version.json
           }
+
+      - name: Promote unreleased changelog and release notes
+        id: notes
+        if: ${{ steps.version.outputs.needs_release == 'true' }}
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          $notesPath = Join-Path $env:RUNNER_TEMP 'release-notes.md'
+          $result = ./scripts/Move-ReleaseNotes.ps1 -Version $env:VERSION -ReleaseNotesPath $notesPath
+
+          "notes_path=$notesPath" >> $env:GITHUB_OUTPUT
+          $delimiter = [guid]::NewGuid().Guid
+          "tag_message<<$delimiter" >> $env:GITHUB_OUTPUT
+          $result.TagMessage >> $env:GITHUB_OUTPUT
+          "$delimiter" >> $env:GITHUB_OUTPUT
 
       - name: Create verified release commit
         id: commit_release
@@ -70,7 +85,7 @@ jobs:
         with:
           tag-name: ${{ steps.version.outputs.version }}
           target-sha: ${{ steps.commit_release.outputs.has-changes == 'true' && steps.commit_release.outputs.commit-sha || github.sha }}
-          message: ${{ steps.version.outputs.version }}
+          message: ${{ steps.notes.outputs.tag_message }}
 
       - name: Prepare develop for the next prerelease version
         id: prepare_develop
@@ -106,7 +121,8 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           VERSION: ${{ steps.version.outputs.version }}
+          NOTES_PATH: ${{ steps.notes.outputs.notes_path }}
         run: |
-          $arguments = @($env:VERSION, '--title', $env:VERSION, '--generate-notes', '--verify-tag')
+          $arguments = @($env:VERSION, '--title', $env:VERSION, '--notes-file', $env:NOTES_PATH, '--verify-tag')
           if ($env:VERSION -match '-') { $arguments += '--prerelease' }
           gh release create @arguments

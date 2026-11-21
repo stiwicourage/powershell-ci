@@ -41,6 +41,24 @@ jobs:
           $config.Output.Verbosity = 'Minimal'
           Invoke-Pester -Configuration $config
 
+  changelog:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install KeepAChangelog
+        uses: ./actions/install-ps-modules
+        with:
+          modules: KeepAChangelog
+
+      - name: Validate CHANGELOG.md and RELEASE_NOTE.md
+        run: |
+          foreach ($path in './CHANGELOG.md', './RELEASE_NOTE.md') {
+            Test-KeepAChangelogFile -Path $path -ThrowOnError | Out-Null
+            Write-Output "$path follows Keep a Changelog."
+          }
+
   actionlint:
     runs-on: ubuntu-latest
     steps:
