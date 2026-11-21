@@ -53,6 +53,49 @@ Describe 'Invoke-ScriptAnalyzerCI helpers' {
         $result.RuleName | Should -Contain 'PSUseApprovedVerbs'
     }
 
+    Describe 'Severity filter' {
+        BeforeEach {
+            $script:oldSeverity = $script:ScriptAnalyzerSeverity
+            Mock Invoke-ScriptAnalyzer { @() }
+        }
+
+        AfterEach {
+            $script:ScriptAnalyzerSeverity = $oldSeverity
+        }
+
+        It 'forwards configured severities to the analyzer' {
+            $script:ScriptAnalyzerSeverity = @('Error', 'Warning')
+
+            Invoke-ScriptAnalyzerWithTransientRetry -Path 'sample.ps1' | Should -BeNullOrEmpty
+
+            Should -Invoke Invoke-ScriptAnalyzer -Exactly -Times 1 -ParameterFilter {
+                ($Severity -join ',') -eq 'Error,Warning'
+            }
+        }
+
+        It 'analyzes every severity when no severity is configured' {
+            $script:ScriptAnalyzerSeverity = @()
+
+            Invoke-ScriptAnalyzerWithTransientRetry -Path 'sample.ps1' | Should -BeNullOrEmpty
+
+            Should -Invoke Invoke-ScriptAnalyzer -Exactly -Times 1 -ParameterFilter {
+                -not $PSBoundParameters.ContainsKey('Severity')
+            }
+        }
+    }
+
+    It 'drops real analyzer findings outside the configured severities' {
+        $oldSeverity = $script:ScriptAnalyzerSeverity
+        $path = Join-Path $TestDrive 'WarningOnly.ps1'
+        Set-Content -LiteralPath $path -Value 'function Bad-AnalyzerFixture { }'
+        try {
+            $script:ScriptAnalyzerSeverity = @('Error')
+            @(Invoke-ScriptAnalyzerWithTransientRetry -Path $path) | Should -BeNullOrEmpty
+        } finally {
+            $script:ScriptAnalyzerSeverity = $oldSeverity
+        }
+    }
+
     It 'does not retry non-transient analyzer failures' {
         Mock Invoke-ScriptAnalyzer {
             throw [System.InvalidOperationException]::new('persistent analyzer failure')
@@ -251,6 +294,17 @@ Describe 'Invoke-ScriptAnalyzerCI script process behavior' {
         $process.ExitCode | Should -Be 1
         $process.StandardError | Should -Match 'PSScriptAnalyzer reported'
         Get-Content (Join-Path $harness.RepositoryRoot 'artifacts/scriptanalyzer.txt') -Raw | Should -Match 'Rule.Info'
+    }
+
+    It 'returns exit code 0 when findings fall outside the requested severities' {
+        $finding = @{ Severity = 'Information'; RuleName = 'Rule.Info'; RelativePath = 'src/Sample.ps1'; Line = 1; Message = 'Info finding.' }
+        $harness = Get-ScriptAnalyzerHarness -Findings @([pscustomobject]$finding)
+        $commandPath = Join-Path $TestDrive ([guid]::NewGuid().ToString('N') + '.ps1')
+        Write-ScriptAnalyzerFixtureCommand -Path $commandPath -Harness $harness -ExtraArgument '-Severity Error, Warning'
+
+        $process = Invoke-PwshProcess -ArgumentList @('-NoLogo', '-NoProfile', '-File', $commandPath)
+
+        $process.ExitCode | Should -Be 0 -Because ($process.StandardOutput + $process.StandardError)
     }
 
     It 'returns exit code 1 when the analyzer dependency is missing' {

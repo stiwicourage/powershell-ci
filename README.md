@@ -121,7 +121,9 @@ thresholds and exclusions remain the consumer project's responsibility.
 The existing shared analyzer remains authoritative: it fails on every returned
 finding, including Information, and excludes only `PSAvoidUsingWriteHost` by
 default. Its existing `analysis-paths`, `exclude-rules` and `required-version`
-inputs remain unchanged.
+inputs remain unchanged. The optional `severity` action input (reusable tests
+input `script-analyzer-severity`) limits the gate to the listed severities, for
+example `Error Warning ParseError`; empty keeps failing on every severity.
 In isolated tests, the existing `script-analyzer-required-version` also pins the
 saved analyzer dependency. The analyzer imports that owned version by its exact
 path, even when a newer saved version exists; no CurrentUser fallback is used.

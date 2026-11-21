@@ -14,6 +14,10 @@ inputs:
     description: Space separated rules excluded from analysis.
     required: false
     default: PSAvoidUsingWriteHost
+  severity:
+    description: Space separated severities reported, for example Error Warning ParseError. Empty reports every severity.
+    required: false
+    default: ''
   output-directory:
     description: Project-relative directory that receives scriptanalyzer.txt.
     required: false
@@ -29,11 +33,13 @@ runs:
         REQUIRED_VERSION: ${{ inputs.required-version }}
         EXCLUDE_RULES: ${{ inputs.exclude-rules }}
         OUTPUT_DIRECTORY: ${{ inputs.output-directory }}
+        SEVERITY: ${{ inputs.severity }}
       run: |
         & "${{ github.action_path }}/Invoke-ScriptAnalyzerCI.ps1" `
           -ProjectRoot $env:GITHUB_WORKSPACE `
           -OutputDirectory $env:OUTPUT_DIRECTORY `
           -AnalysisPath @($env:ANALYSIS_PATHS -split '\s+' | Where-Object { $_ }) `
           -RequiredVersion $env:REQUIRED_VERSION `
-          -ExcludeRule @($env:EXCLUDE_RULES -split '\s+' | Where-Object { $_ })
+          -ExcludeRule @($env:EXCLUDE_RULES -split '\s+' | Where-Object { $_ }) `
+          -Severity @($env:SEVERITY -split '\s+' | Where-Object { $_ })
         exit $LASTEXITCODE
