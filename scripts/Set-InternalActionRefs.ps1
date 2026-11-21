@@ -4,7 +4,7 @@ param(
     [ValidatePattern('^[A-Za-z0-9][A-Za-z0-9._/-]*$')]
     [string]$Ref,
 
-    [string]$Path = (Join-Path $PSScriptRoot '../.github/workflows')
+    [string]$Path = (Join-Path $PSScriptRoot '../examples')
 )
 
 Set-StrictMode -Version Latest

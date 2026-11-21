@@ -74,6 +74,18 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Check out powershell-ci actions
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ job.workflow_repository }}
+          ref: ${{ job.workflow_sha }}
+          path: .powershell-ci
+          sparse-checkout: actions
+          persist-credentials: false
+
+      - name: Keep powershell-ci actions out of project changes
+        run: Add-Content -LiteralPath (Join-Path (git rev-parse --git-dir) "info/exclude") -Value "/.powershell-ci/"
+
       - name: Validate dependency mode
         env:
           DEPENDENCY_MODE: ${{ inputs.dependency-mode }}
@@ -89,7 +101,7 @@ jobs:
       - name: Install required modules
         id: ci_modules
         if: ${{ inputs.install-command == '' }}
-        uses: stiwicourage/powershell-ci/actions/install-ps-modules@develop
+        uses: ./.powershell-ci/actions/install-ps-modules
         with:
           modules: ${{ inputs.install-modules }}
           dependency-mode: ${{ inputs.dependency-mode }}
@@ -150,7 +162,7 @@ jobs:
 
       - name: Ensure PSResource repository registration
         if: ${{ github.ref_name == inputs.release-branch || github.ref_name == inputs.develop-branch }}
-        uses: stiwicourage/powershell-ci/actions/ensure-psresource-repository@develop
+        uses: ./.powershell-ci/actions/ensure-psresource-repository
 
       - name: Run release
         id: release
@@ -173,9 +185,15 @@ jobs:
           Invoke-NovaRelease @releaseArguments
           $version = Get-NovaProjectInfo -Version
           $result = Move-UnreleasedChangelog -Version $version
-          Move-UnreleasedChangelog -Path ./RELEASE_NOTE.md -Version $version | Out-Null
+          $notesPath = ''
+          if (Test-Path -LiteralPath ./RELEASE_NOTE.md) {
+            $releaseNote = Move-UnreleasedChangelog -Path ./RELEASE_NOTE.md -Version $version
+            $notesPath = Join-Path $env:RUNNER_TEMP 'release-notes.md'
+            Set-Content -LiteralPath $notesPath -Value $releaseNote.ReleaseNotesBody -Encoding utf8
+          }
 
           "release_version=$version" >> $env:GITHUB_OUTPUT
+          "notes_path=$notesPath" >> $env:GITHUB_OUTPUT
 
           $delimiter = [guid]::NewGuid().Guid
           "tag_message<<$delimiter" >> $env:GITHUB_OUTPUT
@@ -185,25 +203,32 @@ jobs:
       - name: Create verified release commit
         id: commit_release
         if: ${{ github.ref_name == inputs.release-branch }}
-        uses: stiwicourage/powershell-ci/actions/create-verified-commit@develop
+        uses: ./.powershell-ci/actions/create-verified-commit
         with:
           base-ref: ${{ inputs.release-branch }}
           commit-message: 'chore(release): ${{ steps.release.outputs.release_version }}'
 
       - name: Push verified release commit
         if: ${{ github.ref_name == inputs.release-branch && steps.commit_release.outputs.has-changes == 'true' }}
-        uses: stiwicourage/powershell-ci/actions/update-git-ref@develop
+        uses: ./.powershell-ci/actions/update-git-ref
         with:
           ref: refs/heads/${{ inputs.release-branch }}
           sha: ${{ steps.commit_release.outputs.commit-sha }}
 
       - name: Create annotated release tag
         if: ${{ github.ref_name == inputs.release-branch && steps.commit_release.outputs.has-changes == 'true' }}
-        uses: stiwicourage/powershell-ci/actions/create-annotated-tag@develop
+        uses: ./.powershell-ci/actions/create-annotated-tag
         with:
           tag-name: ${{ steps.release.outputs.release_version }}
           target-sha: ${{ steps.commit_release.outputs.commit-sha }}
           message: ${{ steps.release.outputs.tag_message }}
+
+      - name: Create GitHub release
+        if: ${{ github.ref_name == inputs.release-branch && steps.commit_release.outputs.has-changes == 'true' }}
+        uses: ./.powershell-ci/actions/create-github-release
+        with:
+          tag-name: ${{ steps.release.outputs.release_version }}
+          notes-file: ${{ steps.release.outputs.notes_path }}
 
       - name: Prepare next prerelease version on release branch to develop
         if: ${{ github.ref_name == inputs.release-branch && steps.commit_release.outputs.has-changes == 'true' }}
@@ -226,14 +251,14 @@ jobs:
       - name: Create verified develop prerelease commit
         id: commit_develop_from_release
         if: ${{ github.ref_name == inputs.release-branch && steps.commit_release.outputs.has-changes == 'true' }}
-        uses: stiwicourage/powershell-ci/actions/create-verified-commit@develop
+        uses: ./.powershell-ci/actions/create-verified-commit
         with:
           base-ref: ${{ inputs.release-branch }}
           commit-message: 'chore: prepare develop for next prerelease'
 
       - name: Push verified develop prerelease commit
         if: ${{ github.ref_name == inputs.release-branch && steps.commit_develop_from_release.outputs.has-changes == 'true' }}
-        uses: stiwicourage/powershell-ci/actions/update-git-ref@develop
+        uses: ./.powershell-ci/actions/update-git-ref
         with:
           ref: refs/heads/${{ inputs.develop-branch }}
           sha: ${{ steps.commit_develop_from_release.outputs.commit-sha }}
@@ -276,20 +301,20 @@ jobs:
       - name: Create verified develop commit
         id: commit_develop
         if: ${{ github.ref_name == inputs.develop-branch }}
-        uses: stiwicourage/powershell-ci/actions/create-verified-commit@develop
+        uses: ./.powershell-ci/actions/create-verified-commit
         with:
           base-ref: ${{ inputs.develop-branch }}
           commit-message: 'chore: prepare next prerelease version'
 
       - name: Push verified develop commit
         if: ${{ github.ref_name == inputs.develop-branch && steps.commit_develop.outputs.has-changes == 'true' }}
-        uses: stiwicourage/powershell-ci/actions/update-git-ref@develop
+        uses: ./.powershell-ci/actions/update-git-ref
         with:
           ref: refs/heads/${{ inputs.develop-branch }}
           sha: ${{ steps.commit_develop.outputs.commit-sha }}
 
       - name: Cleanup owned CI modules
         if: ${{ always() && steps.ci_modules.outputs.module-root != '' }}
-        uses: stiwicourage/powershell-ci/actions/cleanup-ps-modules@develop
+        uses: ./.powershell-ci/actions/cleanup-ps-modules
         with:
           module-root: ${{ steps.ci_modules.outputs.module-root }}

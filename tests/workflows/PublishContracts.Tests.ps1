@@ -23,7 +23,7 @@ Describe 'Existing publish commands and branch guards (<LineEnding>)' -ForEach @
 
     BeforeEach {
         $script:environment = @{}
-        foreach ($name in @('GITHUB_OUTPUT', 'PSGALLERY_API', 'RELEASE_REPOSITORY', 'RELEASE_CI', 'POWERSHELL_CI_BOOTSTRAP', 'PESTER_REQUIRED_VERSION')) {
+        foreach ($name in @('GITHUB_OUTPUT', 'PSGALLERY_API', 'RELEASE_REPOSITORY', 'RELEASE_CI', 'POWERSHELL_CI_BOOTSTRAP', 'PESTER_REQUIRED_VERSION', 'RUNNER_TEMP')) {
             $environment[$name] = [Environment]::GetEnvironmentVariable($name)
         }
         $env:GITHUB_OUTPUT = Join-Path $TestDrive 'release-output.txt'
@@ -31,11 +31,18 @@ Describe 'Existing publish commands and branch guards (<LineEnding>)' -ForEach @
         $env:RELEASE_REPOSITORY = 'PSGallery'
         $env:POWERSHELL_CI_BOOTSTRAP = ''
         $env:PESTER_REQUIRED_VERSION = ''
+        $env:RUNNER_TEMP = Join-Path $TestDrive 'runner-temp'
+        $null = New-Item -ItemType Directory -Path $env:RUNNER_TEMP -Force
+        $script:projectDirectory = Join-Path $TestDrive ([guid]::NewGuid().ToString('N'))
+        $null = New-Item -ItemType Directory -Path $projectDirectory
+        'fixture' | Set-Content -LiteralPath (Join-Path $projectDirectory 'RELEASE_NOTE.md')
+        Push-Location $projectDirectory
         Mock Invoke-NovaRelease {}
-        Mock Move-UnreleasedChangelog { @{ TagMessageText = 'fixture release' } }
+        Mock Move-UnreleasedChangelog { @{ TagMessageText = 'fixture release'; ReleaseNotesBody = "### Added`n`n- Fixture" } }
     }
 
     AfterEach {
+        Pop-Location
         foreach ($name in $environment.Keys) {
             [Environment]::SetEnvironmentVariable($name, $environment[$name])
         }
@@ -51,6 +58,34 @@ Describe 'Existing publish commands and branch guards (<LineEnding>)' -ForEach @
         Should -Invoke Invoke-NovaRelease -Exactly -Times 1 -ParameterFilter { $SkipTests -and [bool]$ContinuousIntegration -eq $ExpectedCI }
         Should -Invoke Move-UnreleasedChangelog -Exactly -Times 1 -ParameterFilter { -not $Path -and $Version -eq '1.2.3' }
         Should -Invoke Move-UnreleasedChangelog -Exactly -Times 1 -ParameterFilter { $Path -eq './RELEASE_NOTE.md' -and $Version -eq '1.2.3' }
+    }
+
+    It 'writes the released RELEASE_NOTE.md section to a notes file for the GitHub release' {
+        $env:RELEASE_CI = 'false'
+        $run = (Get-PublishStep -Name 'Run release') -split '        run: \|\r?\n', 2
+        & ([scriptblock]::Create($run[1]))
+        $notesPath = [regex]::Match((Get-Content $env:GITHUB_OUTPUT -Raw), '(?m)^notes_path=(.+?)\r?$').Groups[1].Value
+        $notesPath | Should -BeExactly (Join-Path $env:RUNNER_TEMP 'release-notes.md')
+        (Get-Content -LiteralPath $notesPath -Raw).Trim() | Should -BeExactly "### Added`n`n- Fixture"
+    }
+
+    It 'releases without RELEASE_NOTE.md and leaves the notes path empty' {
+        $env:RELEASE_CI = 'false'
+        Remove-Item -LiteralPath './RELEASE_NOTE.md'
+        $run = (Get-PublishStep -Name 'Run release') -split '        run: \|\r?\n', 2
+        & ([scriptblock]::Create($run[1]))
+        Should -Invoke Move-UnreleasedChangelog -Exactly -Times 1 -ParameterFilter { -not $Path -and $Version -eq '1.2.3' }
+        Should -Invoke Move-UnreleasedChangelog -Exactly -Times 0 -ParameterFilter { $Path -eq './RELEASE_NOTE.md' }
+        Get-Content $env:GITHUB_OUTPUT | Should -Contain 'notes_path='
+    }
+
+    It 'creates the GitHub release after the annotated tag from the release notes' {
+        $publish.IndexOf('- name: Create GitHub release') | Should -BeGreaterThan $publish.IndexOf('- name: Create annotated release tag')
+        $step = Get-PublishStep -Name 'Create GitHub release'
+        $step | Should -Match "steps.commit_release.outputs.has-changes == 'true'"
+        $step | Should -Match 'uses: \./\.powershell-ci/actions/create-github-release\r?\n'
+        $step | Should -Match 'tag-name: \$\{\{ steps.release.outputs.release_version \}\}'
+        $step | Should -Match 'notes-file: \$\{\{ steps.release.outputs.notes_path \}\}'
     }
 
     It 'routes the existing Test-NovaBuild override without introducing another publish API' {

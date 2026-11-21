@@ -16,13 +16,16 @@ The goal is one place to fix CI so projects stop drifting apart.
 | `actions/create-verified-commit` | Verified release/prerelease commit |
 | `actions/update-git-ref` | Move a branch to a commit |
 | `actions/create-annotated-tag` | Annotated release tag |
+| `actions/create-github-release` | GitHub release for a tag, with text from a notes file or `Version <tag> has been released.` |
 | `actions/ensure-psresource-repository` | Register the PSResource repository |
 | `.github/workflows/tests.yml` | Reusable test, coverage and CodeScene workflow |
 | `.github/workflows/publish.yml` | Reusable Nova build, release and prerelease publish workflow |
 | `.github/workflows/dependency-review.yml` | Reusable dependency review |
 | `.github/workflows/codeql.yml` | Reusable CodeQL analysis |
 | `.github/workflows/powershell-analyzer.yml` | Reusable PSScriptAnalyzer with SARIF upload |
-| `examples/` | Thin caller workflows to copy into a project |
+| `examples/` | Thin caller workflows and the Dependabot config to copy into a project |
+| `scripts/Move-ReleaseNotes.ps1` | Release helper that moves `[Unreleased]` in `CHANGELOG.md` and `RELEASE_NOTE.md` into the released version |
+| `CHANGELOG.md` / `RELEASE_NOTE.md` | Full change history / caller-facing release notes (Keep a Changelog) |
 
 The actions were copied unchanged from NovaModuleTools; they were byte-identical
 in all six projects that had them.
@@ -30,17 +33,30 @@ in all six projects that had them.
 ## Using it
 
 A project keeps only a thin caller workflow that owns triggers, permissions and
-inputs. See `examples/`. Reference a released tag (or `@develop` while testing):
+inputs. See `examples/`. Reference a released tag:
 
 ```yaml
 jobs:
   tests:
-    uses: stiwicourage/powershell-ci/.github/workflows/tests.yml@develop
+    uses: stiwicourage/powershell-ci/.github/workflows/tests.yml@0.4.0
     secrets: inherit
 ```
 
 Callers must grant the permissions the reusable workflow needs
 (`publish.yml` needs `contents: write` and `actions: write`).
+
+Every consumer project also copies `examples/dependabot.yml` to
+`.github/dependabot.yml`, so Dependabot proposes new powershell-ci tags as one
+grouped weekly pull request. Pin released tags, not `@develop`, so Dependabot
+can update them. The full onboarding checklist is in
+`.github/instructions/consumer-onboarding.instructions.md`.
+
+On the release branch `publish.yml` moves `[Unreleased]` in `CHANGELOG.md` and,
+when present, `RELEASE_NOTE.md` into the released version, creates the release
+commit and annotated tag, and then creates a GitHub release for that tag. The
+GitHub release text is the released `RELEASE_NOTE.md` section; projects without
+`RELEASE_NOTE.md` (or with an empty section) get `Version <version> has been
+released.`
 
 ## What stays in each project
 
@@ -132,41 +148,51 @@ Nova orchestration preserves `build,unit,integration` output, forwards exclusion
 to both test phases, and snapshots unit coverage so integration cannot overwrite
 the collected JaCoCo report, including when the output is `artifacts` itself.
 
-During coordinated testing references remain `@develop`. This does not freeze
-transitive actions in previously released workflows. A real release and stable
-internal/caller references require a separate user-owned release checkpoint.
-`scripts/Set-InternalActionRefs.ps1` is the existing reference-update helper;
-this migration neither invokes it nor changes `version.json`.
+The reusable `tests.yml` and `publish.yml` check out their own commit
+(`job.workflow_repository` at `job.workflow_sha`) into `.powershell-ci` and
+run the actions from there (`./.powershell-ci/actions/<name>`). A caller that
+pins `@0.4.0` therefore always runs the 0.4.0 actions; there are no internal
+`@develop` or tag references to maintain. The checkout is added to the
+project's `.git/info/exclude` so it never ends up in release commits.
 
 ## Releasing
 
 Versions follow Semantic Versioning with immutable tags **without a `v`
 prefix** (`0.1.0`, `0.2.0`, ...). While the workflows are being validated they
-are `0.x` and callers reference `@develop`. The workflows reference the
-actions as `stiwicourage/powershell-ci/actions/<name>@<ref>`. To cut a release:
+are `0.x`. To cut a release:
 
 1. Merge to `main` using Conventional Commits (`feat:`, `fix:`, `feat!:`).
 2. `.github/workflows/release.yml` runs on every push to `main` (or manually).
    It uses [SemanticRelease](https://github.com/stiwicourage/SemanticRelease)
    to infer the next version from the commits since the last tag and writes it
    to `version.json`. It stops if there are no new commits or the tag exists.
+   `scripts/Move-ReleaseNotes.ps1` then uses
+   [KeepAChangelog](https://www.powershellgallery.com/packages/KeepAChangelog)
+   to move `[Unreleased]` in `CHANGELOG.md` and `RELEASE_NOTE.md` into a dated
+   `[<version>]` section; the release stops if either section is empty.
    Otherwise it creates a verified `chore(release): <version>` commit on
-   `main`, tags that commit and creates the GitHub release with generated
-   notes.
+   `main`, tags that commit with the released `CHANGELOG.md` section as the
+   tag message and creates the GitHub release with the released
+   `RELEASE_NOTE.md` section as its text.
 3. The same workflow then resets `develop` to the release commit and sets
    `version.json` to the next preview version (for example `0.1.1-preview`).
    Like the Nova publish flow, this force-updates `develop`, so keep unmerged
    work on feature branches.
 
-The default `GITHUB_TOKEN` cannot change files under `.github/workflows/`, so
-the release does not rewrite the internal `@develop` references to the release
-tag. Callers that need an immutable reference should pin the release tag or
-commit SHA of the workflow they call.
+Before the release commit, `scripts/Set-InternalActionRefs.ps1` pins every
+`stiwicourage/powershell-ci/...` reference in `examples/` to the version being
+released, so the examples always show the newest tag without a follow-up pull
+request.
+
+Contributors add every caller-visible change under `[Unreleased]` in
+`CHANGELOG.md` (full history) and `RELEASE_NOTE.md` (caller summary) in the
+same pull request; see `.github/instructions/release-policy.instructions.md`.
 
 The repository's own checks live in `.github/workflows/ci.yml` (Pester on all
-three operating systems and actionlint); the other workflows are reusable
+three operating systems, actionlint and Keep a Changelog validation of both
+files); the other workflows are reusable
 (`workflow_call`) and only run when a project calls them.
 
-Callers pin the tag, for example `@0.1.0`; Dependabot's `github-actions`
+Callers pin the tag, for example `@0.4.0`; Dependabot's `github-actions`
 ecosystem then proposes new tags. Create `1.0.0` only once the inputs and
 behavior are considered stable.
