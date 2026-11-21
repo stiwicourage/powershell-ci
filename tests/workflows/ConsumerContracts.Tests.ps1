@@ -32,6 +32,15 @@ Describe 'Shared opt-in workflow contracts' {
         $action | Should -Match '-TestIsolation \$env:TEST_ISOLATION'
     }
 
+    It 'exposes an empty analyzer severity filter by default and forwards it to the analyzer' {
+        $workflow = Get-Content (Join-Path $root '.github/workflows/tests.yml') -Raw
+        $action = Get-Content (Join-Path $root 'actions/script-analyzer/action.yml') -Raw
+        $workflow | Should -Match "script-analyzer-severity:\s+description:[^\n]+\s+type: string\s+default: ''"
+        $workflow | Should -Match 'severity: \$\{\{ inputs.script-analyzer-severity \}\}'
+        $action | Should -Match "severity:\s+description:[^\n]+\s+required: false\s+default: ''"
+        $action | Should -Match '-Severity @\(\$env:SEVERITY -split'
+    }
+
     It 'feeds the existing analyzer version input into isolated dependency selection' {
         $text = Get-Content (Join-Path $root '.github/workflows/tests.yml') -Raw
         $text | Should -Match 'script-analyzer-required-version: \$\{\{ inputs.script-analyzer-required-version \}\}'

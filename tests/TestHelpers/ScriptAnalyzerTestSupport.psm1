@@ -156,11 +156,11 @@ function Get-ScriptAnalyzerSeverityFixture {
 Writes the isolated analyzer child-process command used by process tests.
 #>
 function Write-ScriptAnalyzerFixtureCommand {
-    param([string]$Path, [object]$Harness)
+    param([string]$Path, [object]$Harness, [string]$ExtraArgument = '')
     @(
         '$env:PSModulePath = "{0}"' -f $Harness.ModuleRoot
         '$env:SCRIPTANALYZER_FAKE_REPOSITORY_ROOT = "{0}"' -f $Harness.RepositoryRoot
-        '& "{0}" -ProjectRoot "{1}" -OutputDirectory "./artifacts"' -f $Harness.ScriptPath, $Harness.RepositoryRoot
+        '& "{0}" -ProjectRoot "{1}" -OutputDirectory "./artifacts" {2}' -f $Harness.ScriptPath, $Harness.RepositoryRoot, $ExtraArgument
         'exit $LASTEXITCODE'
     ) | Set-Content -LiteralPath $Path
 }

@@ -3,7 +3,8 @@ param(
     [string]$OutputDirectory = './artifacts',
     [string[]]$AnalysisPath = @('src', 'scripts', 'tests', 'run.ps1'),
     [string]$RequiredVersion = '',
-    [string[]]$ExcludeRule = @('PSAvoidUsingWriteHost')
+    [string[]]$ExcludeRule = @('PSAvoidUsingWriteHost'),
+    [string[]]$Severity = @()
 )
 
 Set-StrictMode -Version Latest
@@ -15,6 +16,7 @@ $script:ScriptAnalyzerProjectRoot = [System.IO.Path]::GetFullPath($ProjectRoot)
 $script:ScriptAnalyzerPathList = $AnalysisPath
 $script:RequiredPSScriptAnalyzerVersion = if ($RequiredVersion) { [version]$RequiredVersion } else { $null }
 $script:ScriptAnalyzerExcludedRules = $ExcludeRule
+$script:ScriptAnalyzerSeverity = $Severity
 
 function Get-ScriptAnalyzerRepositoryRoot {
     [OutputType([string])]
@@ -152,11 +154,21 @@ function Invoke-ScriptAnalyzerWithTransientRetry {
         [string]$Path
     )
 
+    $parameters = Get-ScriptAnalyzerInvocationParameter -Path $Path
     try {
-        return @(Invoke-ScriptAnalyzer -Path $Path -ExcludeRule $script:ScriptAnalyzerExcludedRules)
+        return @(Invoke-ScriptAnalyzer @parameters)
     } catch [System.NullReferenceException] {
-        return @(Invoke-ScriptAnalyzer -Path $Path -ExcludeRule $script:ScriptAnalyzerExcludedRules)
+        return @(Invoke-ScriptAnalyzer @parameters)
     }
+}
+
+function Get-ScriptAnalyzerInvocationParameter {
+    param([string]$Path)
+    $parameters = @{ Path = $Path; ExcludeRule = $script:ScriptAnalyzerExcludedRules }
+    if (@($script:ScriptAnalyzerSeverity).Count -gt 0) {
+        $parameters.Severity = $script:ScriptAnalyzerSeverity
+    }
+    return $parameters
 }
 
 function ConvertTo-ScriptAnalyzerFindingRecordList {

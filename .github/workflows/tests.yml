@@ -35,6 +35,10 @@ on:
         description: Exact PSScriptAnalyzer version required. Empty accepts any installed version.
         type: string
         default: ''
+      script-analyzer-severity:
+        description: Space separated PSScriptAnalyzer severities that fail the gate, for example Error Warning ParseError. Empty fails on every severity.
+        type: string
+        default: ''
       build-validation:
         description: Also run Test-NovaBuild after Invoke-NovaTest. Ignored when test-command is set.
         type: boolean
@@ -129,6 +133,7 @@ jobs:
         with:
           analysis-paths: ${{ inputs.script-analyzer-paths }}
           required-version: ${{ inputs.script-analyzer-required-version }}
+          severity: ${{ inputs.script-analyzer-severity }}
 
       - name: Run CI tests and coverage
         if: ${{ inputs.test-command == '' }}
