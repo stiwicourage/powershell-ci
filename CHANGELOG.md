@@ -8,6 +8,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+### Changed
+
+### Deprecated
+
+### Removed
+
+### Fixed
+
+### Security
+
+## [0.5.0] - 2026-11-21
+
+### Added
+
 - `RELEASE_NOTE.md` with consumer-facing release notes for every released version.
 - Contributor and agent guidance for changelog and release-note maintenance: `.github/copilot-instructions.md`, `AGENTS.md`, the `release-policy` instructions, the `release-and-changelog` skill, the `prepare-release` prompt and a pull request template.
 - The repository CI now validates `CHANGELOG.md` and `RELEASE_NOTE.md` with `Test-KeepAChangelogFile` on every pull request and `develop` push.
@@ -28,16 +42,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - `release.yml` pins every powershell-ci reference in `examples/` to the version being released, in the release commit. `scripts/Set-InternalActionRefs.ps1` now targets `examples/` by default.
 - The examples and the `README.md` usage example now reference `0.4.0`.
 
-### Deprecated
-
-### Removed
-
 ### Fixed
 
 - `release.yml` now moves the `[Unreleased]` sections of `CHANGELOG.md` and `RELEASE_NOTE.md` into a dated version section with KeepAChangelog before creating the release commit. Releases `0.1.0` to `0.4.0` left every entry under `[Unreleased]` without a version or date.
 - `CHANGELOG.md` was reconstructed from the Git history so each released version (`0.1.0` to `0.4.0`) lists its actual changes and release date.
-
-### Security
 
 ## [0.4.0] - 2026-11-21
 
@@ -109,10 +117,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - `scripts/Set-InternalActionRefs.ps1` to pin the internal action references to a release ref.
 - Repository CI in `ci.yml` (Pester on Linux, Windows and macOS plus actionlint) and `release.yml`, which uses SemanticRelease to infer the next version from Conventional Commits into `version.json`, creates a verified release commit, annotated tag and GitHub release on `main`, and prepares `develop` for the next preview version.
 
-[Unreleased]: https://github.com/stiwicourage/powershell-ci/compare/0.4.0...HEAD
+[Unreleased]: https://github.com/stiwicourage/powershell-ci/compare/0.5.0...HEAD
+[0.5.0]: https://github.com/stiwicourage/powershell-ci/compare/0.4.0...0.5.0
 [0.4.0]: https://github.com/stiwicourage/powershell-ci/compare/0.3.0...0.4.0
 [0.3.0]: https://github.com/stiwicourage/powershell-ci/compare/0.2.1...0.3.0
 [0.2.1]: https://github.com/stiwicourage/powershell-ci/compare/0.2.0...0.2.1
 [0.2.0]: https://github.com/stiwicourage/powershell-ci/compare/0.1.1...0.2.0
 [0.1.1]: https://github.com/stiwicourage/powershell-ci/compare/0.1.0...0.1.1
 [0.1.0]: https://github.com/stiwicourage/powershell-ci/releases/tag/0.1.0
+

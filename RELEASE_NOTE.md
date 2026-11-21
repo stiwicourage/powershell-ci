@@ -6,6 +6,20 @@ This file summarizes the release notes for powershell-ci. **UNRELEASED** changes
 
 ### Added
 
+### Changed
+
+### Deprecated
+
+### Removed
+
+### Fixed
+
+### Security
+
+## [0.5.0] - 2026-11-21
+
+### Added
+
 - `publish.yml` now creates a GitHub release when it tags a stable release. The text is that version's `RELEASE_NOTE.md` section, or `Version <version> has been released.` when the project has no release notes. No caller changes are needed beyond pinning the new tag.
 - New `create-github-release` action for creating a GitHub release from a notes file.
 - `examples/dependabot.yml`: copy it to `.github/dependabot.yml` so Dependabot proposes new powershell-ci tags in one weekly pull request.
@@ -16,14 +30,6 @@ This file summarizes the release notes for powershell-ci. **UNRELEASED** changes
 - `publish.yml` no longer fails when a project has no `RELEASE_NOTE.md`.
 - `tests.yml` and `publish.yml` now always run the actions from the powershell-ci version you pin, instead of the latest `develop` actions. No caller changes are needed; the jobs add a `.powershell-ci` checkout that is excluded from your Git changes.
 - The files in `examples/` always reference the newest powershell-ci release.
-
-### Deprecated
-
-### Removed
-
-### Fixed
-
-### Security
 
 ## [0.4.0] - 2026-11-21
 
@@ -68,3 +74,4 @@ No public API or workflow changes in this release. Internal maintenance only.
 - First release with reusable `tests.yml`, `publish.yml`, `dependency-review.yml`, `codeql.yml` and `powershell-analyzer.yml` workflows.
 - Shared actions `install-ps-modules`, `script-analyzer`, `nova-test`, `codescene-analysis`, `check-coverage`, `create-verified-commit`, `update-git-ref`, `create-annotated-tag` and `ensure-psresource-repository`.
 - Example caller workflows in `examples/`.
+
