@@ -46,3 +46,26 @@ Describe 'Shared opt-in workflow contracts' {
         $text | Should -Match 'script-analyzer-required-version: \$\{\{ inputs.script-analyzer-required-version \}\}'
     }
 }
+
+Describe 'Consumer onboarding examples' {
+    It 'ships a Dependabot config that groups powershell-ci updates' {
+        $path = Join-Path $root 'examples/dependabot.yml'
+        Test-Path -LiteralPath $path | Should -BeTrue
+        $text = Get-Content -LiteralPath $path -Raw
+        $text | Should -Match 'package-ecosystem: github-actions'
+        $text | Should -Match 'interval: weekly'
+        $text | Should -Match 'prefix: chore'
+        $text | Should -Match 'powershell-ci:\s+patterns:\s+- "stiwicourage/powershell-ci\*"'
+    }
+
+    It 'pins <Example> to a release tag that Dependabot can update' -ForEach @(
+        @{ Example = 'Tests.yml' }
+        @{ Example = 'Publish.yml' }
+        @{ Example = 'Security.yml' }
+    ) {
+        $text = Get-Content -LiteralPath (Join-Path $root "examples/$Example") -Raw
+        $references = [regex]::Matches($text, 'stiwicourage/powershell-ci/[^@\s]+@(\S+)')
+        $references.Count | Should -BeGreaterThan 0
+        $references | ForEach-Object { $_.Groups[1].Value | Should -Match '^\d+\.\d+\.\d+$' }
+    }
+}

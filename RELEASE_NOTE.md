@@ -6,9 +6,14 @@ This file summarizes the release notes for powershell-ci. **UNRELEASED** changes
 
 ### Added
 
+- `publish.yml` now creates a GitHub release when it tags a stable release. The text is that version's `RELEASE_NOTE.md` section, or `Version <version> has been released.` when the project has no release notes. No caller changes are needed beyond pinning the new tag.
+- New `create-github-release` action for creating a GitHub release from a notes file.
+- `examples/dependabot.yml`: copy it to `.github/dependabot.yml` so Dependabot proposes new powershell-ci tags in one weekly pull request.
+
 ### Changed
 
-- GitHub releases of `powershell-ci` now show these release notes, and annotated tags contain the matching `CHANGELOG.md` section. Reusable workflow and action inputs are unchanged.
+- GitHub releases of `powershell-ci` now show these release notes, and annotated tags contain the matching `CHANGELOG.md` section.
+- `publish.yml` no longer fails when a project has no `RELEASE_NOTE.md`.
 
 ### Deprecated
 

@@ -173,9 +173,15 @@ jobs:
           Invoke-NovaRelease @releaseArguments
           $version = Get-NovaProjectInfo -Version
           $result = Move-UnreleasedChangelog -Version $version
-          Move-UnreleasedChangelog -Path ./RELEASE_NOTE.md -Version $version | Out-Null
+          $notesPath = ''
+          if (Test-Path -LiteralPath ./RELEASE_NOTE.md) {
+            $releaseNote = Move-UnreleasedChangelog -Path ./RELEASE_NOTE.md -Version $version
+            $notesPath = Join-Path $env:RUNNER_TEMP 'release-notes.md'
+            Set-Content -LiteralPath $notesPath -Value $releaseNote.ReleaseNotesBody -Encoding utf8
+          }
 
           "release_version=$version" >> $env:GITHUB_OUTPUT
+          "notes_path=$notesPath" >> $env:GITHUB_OUTPUT
 
           $delimiter = [guid]::NewGuid().Guid
           "tag_message<<$delimiter" >> $env:GITHUB_OUTPUT
@@ -204,6 +210,13 @@ jobs:
           tag-name: ${{ steps.release.outputs.release_version }}
           target-sha: ${{ steps.commit_release.outputs.commit-sha }}
           message: ${{ steps.release.outputs.tag_message }}
+
+      - name: Create GitHub release
+        if: ${{ github.ref_name == inputs.release-branch && steps.commit_release.outputs.has-changes == 'true' }}
+        uses: stiwicourage/powershell-ci/actions/create-github-release@develop
+        with:
+          tag-name: ${{ steps.release.outputs.release_version }}
+          notes-file: ${{ steps.release.outputs.notes_path }}
 
       - name: Prepare next prerelease version on release branch to develop
         if: ${{ github.ref_name == inputs.release-branch && steps.commit_release.outputs.has-changes == 'true' }}

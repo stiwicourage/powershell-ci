@@ -16,13 +16,14 @@ The goal is one place to fix CI so projects stop drifting apart.
 | `actions/create-verified-commit` | Verified release/prerelease commit |
 | `actions/update-git-ref` | Move a branch to a commit |
 | `actions/create-annotated-tag` | Annotated release tag |
+| `actions/create-github-release` | GitHub release for a tag, with text from a notes file or `Version <tag> has been released.` |
 | `actions/ensure-psresource-repository` | Register the PSResource repository |
 | `.github/workflows/tests.yml` | Reusable test, coverage and CodeScene workflow |
 | `.github/workflows/publish.yml` | Reusable Nova build, release and prerelease publish workflow |
 | `.github/workflows/dependency-review.yml` | Reusable dependency review |
 | `.github/workflows/codeql.yml` | Reusable CodeQL analysis |
 | `.github/workflows/powershell-analyzer.yml` | Reusable PSScriptAnalyzer with SARIF upload |
-| `examples/` | Thin caller workflows to copy into a project |
+| `examples/` | Thin caller workflows and the Dependabot config to copy into a project |
 | `scripts/Move-ReleaseNotes.ps1` | Release helper that moves `[Unreleased]` in `CHANGELOG.md` and `RELEASE_NOTE.md` into the released version |
 | `CHANGELOG.md` / `RELEASE_NOTE.md` | Full change history / caller-facing release notes (Keep a Changelog) |
 
@@ -43,6 +44,19 @@ jobs:
 
 Callers must grant the permissions the reusable workflow needs
 (`publish.yml` needs `contents: write` and `actions: write`).
+
+Every consumer project also copies `examples/dependabot.yml` to
+`.github/dependabot.yml`, so Dependabot proposes new powershell-ci tags as one
+grouped weekly pull request. Pin released tags, not `@develop`, so Dependabot
+can update them. The full onboarding checklist is in
+`.github/instructions/consumer-onboarding.instructions.md`.
+
+On the release branch `publish.yml` moves `[Unreleased]` in `CHANGELOG.md` and,
+when present, `RELEASE_NOTE.md` into the released version, creates the release
+commit and annotated tag, and then creates a GitHub release for that tag. The
+GitHub release text is the released `RELEASE_NOTE.md` section; projects without
+`RELEASE_NOTE.md` (or with an empty section) get `Version <version> has been
+released.`
 
 ## What stays in each project
 

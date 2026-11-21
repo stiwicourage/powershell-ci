@@ -118,11 +118,7 @@ jobs:
 
       - name: Create GitHub release
         if: ${{ steps.version.outputs.needs_release == 'true' }}
-        env:
-          GH_TOKEN: ${{ github.token }}
-          VERSION: ${{ steps.version.outputs.version }}
-          NOTES_PATH: ${{ steps.notes.outputs.notes_path }}
-        run: |
-          $arguments = @($env:VERSION, '--title', $env:VERSION, '--notes-file', $env:NOTES_PATH, '--verify-tag')
-          if ($env:VERSION -match '-') { $arguments += '--prerelease' }
-          gh release create @arguments
+        uses: ./actions/create-github-release
+        with:
+          tag-name: ${{ steps.version.outputs.version }}
+          notes-file: ${{ steps.notes.outputs.notes_path }}

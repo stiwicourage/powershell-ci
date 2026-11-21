@@ -11,12 +11,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - `RELEASE_NOTE.md` with consumer-facing release notes for every released version.
 - Contributor and agent guidance for changelog and release-note maintenance: `.github/copilot-instructions.md`, `AGENTS.md`, the `release-policy` instructions, the `release-and-changelog` skill, the `prepare-release` prompt and a pull request template.
 - The repository CI now validates `CHANGELOG.md` and `RELEASE_NOTE.md` with `Test-KeepAChangelogFile` on every pull request and `develop` push.
+- The reusable `publish.yml` workflow now creates a GitHub release for every stable release tag it creates.
+    - The release text is the released version's `RELEASE_NOTE.md` section. When the project has no `RELEASE_NOTE.md`, or the section is empty, the text is `Version <version> has been released.`
+    - Callers need no new inputs; the existing `contents: write` permission is enough.
+- `examples/dependabot.yml`, a Dependabot config that consumer projects copy to `.github/dependabot.yml`. It checks the `github-actions` ecosystem weekly and groups all `stiwicourage/powershell-ci` references into one `chore` pull request.
+- `consumer-onboarding` instructions that make pinned release tags and the Dependabot config part of every new consumer setup. `README.md` and the agent index point to them.
+- New `create-github-release` action that creates a GitHub release for an existing tag from a notes file, with the same default text and prerelease detection for versions containing `-`. `release.yml` uses it too.
 
 ### Changed
 
 - GitHub releases of `powershell-ci` now use the released version's `RELEASE_NOTE.md` section as the release text instead of GitHub's generated notes.
 - The annotated release tag message now contains the released version's `CHANGELOG.md` section instead of only the version number.
 - `release.yml` now stops before creating any release commit, tag or GitHub release when `CHANGELOG.md` or `RELEASE_NOTE.md` has no entries under `[Unreleased]`.
+- `publish.yml` no longer requires `RELEASE_NOTE.md`; projects without it are released with only `CHANGELOG.md` moved.
 
 ### Deprecated
 

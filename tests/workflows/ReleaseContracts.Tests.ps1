@@ -58,8 +58,8 @@ Describe 'Release workflow changelog and release-note contract' {
 
     It 'creates the GitHub release from the promoted release notes instead of generated notes' {
         $step = Get-ReleaseStep -Name 'Create GitHub release'
-        $step | Should -Match "'--notes-file', \`$env:NOTES_PATH"
-        $step | Should -Match 'NOTES_PATH: \$\{\{ steps.notes.outputs.notes_path \}\}'
+        $step | Should -Match 'uses: \./actions/create-github-release'
+        $step | Should -Match 'notes-file: \$\{\{ steps.notes.outputs.notes_path \}\}'
         $step | Should -Not -Match 'generate-notes'
     }
 }
