@@ -11,6 +11,7 @@ Describe 'Move-ReleaseNotes' {
     BeforeEach {
         $script:projectRoot = Join-Path $TestDrive ([guid]::NewGuid().ToString('N'))
         New-Item -ItemType Directory -Path $projectRoot | Out-Null
+        'fixture' | Set-Content -LiteralPath (Join-Path $projectRoot 'CHANGELOG.md'), (Join-Path $projectRoot 'RELEASE_NOTE.md')
         $script:notesPath = Join-Path $TestDrive "$([guid]::NewGuid().ToString('N')).md"
         Mock Move-UnreleasedChangelog -ParameterFilter { $Path -like '*CHANGELOG.md' } {
             [pscustomobject]@{ ReleaseNotesBody = "### Added`n`n- Full detail."; TagMessageText = "Added`n`nFull detail." }
@@ -40,6 +41,18 @@ Describe 'Move-ReleaseNotes' {
 
         $result.TagMessage | Should -BeExactly "Added`n`nFull detail."
         $result.ReleaseNotesPath | Should -BeExactly $notesPath
+    }
+
+    It 'leaves both release files with exactly one trailing newline' {
+        Mock Move-UnreleasedChangelog -ParameterFilter { $true } {
+            [System.IO.File]::WriteAllText($Path, "# Promoted`n`n")
+            [pscustomobject]@{ ReleaseNotesBody = '- Entry'; TagMessageText = 'Entry' }
+        }
+        & $scriptPath -Version '1.2.3' -ReleaseNotesPath $notesPath -ProjectRoot $projectRoot | Out-Null
+
+        foreach ($file in 'CHANGELOG.md', 'RELEASE_NOTE.md') {
+            [System.IO.File]::ReadAllText((Join-Path $projectRoot $file)) | Should -BeExactly "# Promoted`n"
+        }
     }
 
     It 'stops the release when <File> has no unreleased entries' -ForEach @(

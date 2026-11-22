@@ -47,8 +47,9 @@ Callers must grant the permissions the reusable workflow needs
 
 Every consumer project also copies `examples/dependabot.yml` to
 `.github/dependabot.yml`, so Dependabot proposes new powershell-ci tags as one
-grouped weekly pull request. Pin released tags, not `@develop`, so Dependabot
-can update them. The full onboarding checklist is in
+grouped weekly pull request. The config excludes powershell-ci from
+Dependabot's default 3-day cooldown, so a new tag is proposed on the next run.
+Pin released tags, not `@develop`, so Dependabot can update them. The full onboarding checklist is in
 `.github/instructions/consumer-onboarding.instructions.md`.
 
 On the release branch `publish.yml` moves `[Unreleased]` in `CHANGELOG.md` and,
@@ -140,6 +141,8 @@ default. Its existing `analysis-paths`, `exclude-rules` and `required-version`
 inputs remain unchanged. The optional `severity` action input (reusable tests
 input `script-analyzer-severity`) limits the gate to the listed severities, for
 example `Error Warning ParseError`; empty keeps failing on every severity.
+Consumer projects should leave it empty and fix findings instead; the input
+exists for temporary, explicitly accepted exceptions.
 In isolated tests, the existing `script-analyzer-required-version` also pins the
 saved analyzer dependency. The analyzer imports that owned version by its exact
 path, even when a newer saved version exists; no CurrentUser fallback is used.

@@ -10,3 +10,6 @@ updates:
       powershell-ci:
         patterns:
           - "stiwicourage/powershell-ci*"
+    cooldown:
+      exclude:
+        - "stiwicourage/powershell-ci*"

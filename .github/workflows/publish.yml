@@ -191,6 +191,11 @@ jobs:
             $notesPath = Join-Path $env:RUNNER_TEMP 'release-notes.md'
             Set-Content -LiteralPath $notesPath -Value $releaseNote.ReleaseNotesBody -Encoding utf8
           }
+          # KeepAChangelog 0.3.0 and earlier write an extra blank line at the end of the promoted file.
+          foreach ($file in @('./CHANGELOG.md', './RELEASE_NOTE.md') | Where-Object { Test-Path -LiteralPath $_ }) {
+            $text = [System.IO.File]::ReadAllText((Resolve-Path -LiteralPath $file)).TrimEnd() + "`n"
+            [System.IO.File]::WriteAllText((Resolve-Path -LiteralPath $file), $text)
+          }
 
           "release_version=$version" >> $env:GITHUB_OUTPUT
           "notes_path=$notesPath" >> $env:GITHUB_OUTPUT
