@@ -13,6 +13,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Changed
 
 - `examples/dependabot.yml` now excludes `stiwicourage/powershell-ci*` from Dependabot's default 3-day cooldown, so new powershell-ci tags are proposed on the next scheduled run instead of after 3 days.
+- The consumer onboarding instructions and the README now tell consumer projects not to narrow the ScriptAnalyzer gate with `script-analyzer-severity` or a local severity filter, and to fix findings instead.
 
 ### Deprecated
 

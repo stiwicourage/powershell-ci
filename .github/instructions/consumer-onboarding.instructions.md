@@ -16,6 +16,7 @@ Use this file when a project is set up to call powershell-ci, when an existing p
 4. Dependabot opens pull requests against the repository's default branch. For projects that release from `main` and integrate on `develop`, keep `develop` as the default branch or set `target-branch: develop`.
 5. Grant the permissions the reusable workflows need (`publish.yml`: `contents: write` and `actions: write`).
 6. Add `CHANGELOG.md` (and `RELEASE_NOTE.md` for the GitHub release text) in Keep a Changelog format.
+7. Do not set `script-analyzer-severity`, `exclude-rules` or a severity filter in a local analyzer wrapper. Keep the default gate, which fails on every finding including `Information` and excludes only `PSAvoidUsingWriteHost`, and fix findings in the code instead. A local `scripts/build/Invoke-ScriptAnalyzerCI.ps1` should delegate to `actions/script-analyzer/Invoke-ScriptAnalyzerCI.ps1` with the same inputs as CI.
 
 ## Rules for changes in this repository
 

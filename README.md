@@ -141,6 +141,8 @@ default. Its existing `analysis-paths`, `exclude-rules` and `required-version`
 inputs remain unchanged. The optional `severity` action input (reusable tests
 input `script-analyzer-severity`) limits the gate to the listed severities, for
 example `Error Warning ParseError`; empty keeps failing on every severity.
+Consumer projects should leave it empty and fix findings instead; the input
+exists for temporary, explicitly accepted exceptions.
 In isolated tests, the existing `script-analyzer-required-version` also pins the
 saved analyzer dependency. The analyzer imports that owned version by its exact
 path, even when a newer saved version exists; no CurrentUser fallback is used.
