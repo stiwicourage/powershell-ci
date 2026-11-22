@@ -8,17 +8,23 @@ This file summarizes the release notes for powershell-ci. **UNRELEASED** changes
 
 ### Changed
 
-- `examples/dependabot.yml` now exempts powershell-ci from Dependabot's default 3-day cooldown. Add the same `cooldown.exclude` entry to an existing `.github/dependabot.yml` to get new powershell-ci tags proposed right away.
-
 ### Deprecated
 
 ### Removed
 
 ### Fixed
 
-- `publish.yml` no longer leaves an extra blank line at the end of `CHANGELOG.md` and `RELEASE_NOTE.md` in the release commit, which made trailing-newline checks fail after a release.
-
 ### Security
+
+## [0.6.0] - 2026-11-22
+
+### Changed
+
+- `examples/dependabot.yml` now exempts powershell-ci from Dependabot's default 3-day cooldown. Add the same `cooldown.exclude` entry to an existing `.github/dependabot.yml` to get new powershell-ci tags proposed right away.
+
+### Fixed
+
+- `publish.yml` no longer leaves an extra blank line at the end of `CHANGELOG.md` and `RELEASE_NOTE.md` in the release commit, which made trailing-newline checks fail after a release.
 
 ## [0.5.0] - 2026-11-21
 
