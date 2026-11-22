@@ -47,8 +47,9 @@ Callers must grant the permissions the reusable workflow needs
 
 Every consumer project also copies `examples/dependabot.yml` to
 `.github/dependabot.yml`, so Dependabot proposes new powershell-ci tags as one
-grouped weekly pull request. Pin released tags, not `@develop`, so Dependabot
-can update them. The full onboarding checklist is in
+grouped weekly pull request. The config excludes powershell-ci from
+Dependabot's default 3-day cooldown, so a new tag is proposed on the next run.
+Pin released tags, not `@develop`, so Dependabot can update them. The full onboarding checklist is in
 `.github/instructions/consumer-onboarding.instructions.md`.
 
 On the release branch `publish.yml` moves `[Unreleased]` in `CHANGELOG.md` and,

@@ -58,6 +58,11 @@ Describe 'Consumer onboarding examples' {
         $text | Should -Match 'powershell-ci:\s+patterns:\s+- "stiwicourage/powershell-ci\*"'
     }
 
+    It 'exempts powershell-ci releases from the default Dependabot cooldown' {
+        $text = Get-Content -LiteralPath (Join-Path $root 'examples/dependabot.yml') -Raw
+        $text | Should -Match 'cooldown:\s+exclude:\s+- "stiwicourage/powershell-ci\*"'
+    }
+
     It 'pins <Example> to a release tag that Dependabot can update' -ForEach @(
         @{ Example = 'Tests.yml' }
         @{ Example = 'Publish.yml' }

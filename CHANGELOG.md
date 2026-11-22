@@ -8,13 +8,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- A repository test that fails when a tracked text file does not end with exactly one newline.
+
 ### Changed
+
+- `examples/dependabot.yml` now excludes `stiwicourage/powershell-ci*` from Dependabot's default 3-day cooldown, so new powershell-ci tags are proposed on the next scheduled run instead of after 3 days.
 
 ### Deprecated
 
 ### Removed
 
 ### Fixed
+
+- `publish.yml` and `release.yml` no longer leave an extra blank line at the end of `CHANGELOG.md` and `RELEASE_NOTE.md` in the release commit. KeepAChangelog 0.3.0 and earlier write one, so the workflows now trim the files to exactly one trailing newline after moving `[Unreleased]`.
+- Removed the extra blank line at the end of `CHANGELOG.md` and `RELEASE_NOTE.md` left by the 0.5.0 release.
 
 ### Security
 
@@ -125,4 +132,3 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 [0.2.0]: https://github.com/stiwicourage/powershell-ci/compare/0.1.1...0.2.0
 [0.1.1]: https://github.com/stiwicourage/powershell-ci/compare/0.1.0...0.1.1
 [0.1.0]: https://github.com/stiwicourage/powershell-ci/releases/tag/0.1.0
-

@@ -69,6 +69,20 @@ Describe 'Existing publish commands and branch guards (<LineEnding>)' -ForEach @
         (Get-Content -LiteralPath $notesPath -Raw).Trim() | Should -BeExactly "### Added`n`n- Fixture"
     }
 
+    It 'leaves the promoted release files with exactly one trailing newline' {
+        $env:RELEASE_CI = 'false'
+        Mock Move-UnreleasedChangelog {
+            $file = if ($Path) { $Path } else { './CHANGELOG.md' }
+            [System.IO.File]::WriteAllText((Join-Path $PWD $file), "# Promoted`n`n")
+            @{ TagMessageText = 'fixture release'; ReleaseNotesBody = '- Fixture' }
+        }
+        $run = (Get-PublishStep -Name 'Run release') -split '        run: \|\r?\n', 2
+        & ([scriptblock]::Create($run[1]))
+        foreach ($file in 'CHANGELOG.md', 'RELEASE_NOTE.md') {
+            [System.IO.File]::ReadAllText((Join-Path $projectDirectory $file)) | Should -BeExactly "# Promoted`n"
+        }
+    }
+
     It 'releases without RELEASE_NOTE.md and leaves the notes path empty' {
         $env:RELEASE_CI = 'false'
         Remove-Item -LiteralPath './RELEASE_NOTE.md'

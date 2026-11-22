@@ -13,13 +13,23 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
+# KeepAChangelog 0.3.0 and earlier write an extra blank line at the end of the promoted file.
+function Repair-TrailingNewline {
+    param([string]$Path)
+
+    $text = [System.IO.File]::ReadAllText($Path).TrimEnd() + "`n"
+    [System.IO.File]::WriteAllText($Path, $text)
+}
+
 function Move-ReleaseFileSection {
     param([string]$Root, [string]$FileName, [string]$ReleaseVersion)
 
-    $result = Move-UnreleasedChangelog -Path (Join-Path $Root $FileName) -Version $ReleaseVersion
+    $path = Join-Path $Root $FileName
+    $result = Move-UnreleasedChangelog -Path $path -Version $ReleaseVersion
     if ([string]::IsNullOrWhiteSpace($result.ReleaseNotesBody)) {
         throw "$FileName has no entries under [Unreleased]. Add them before releasing $ReleaseVersion."
     }
+    Repair-TrailingNewline -Path $path
     return $result
 }
 
