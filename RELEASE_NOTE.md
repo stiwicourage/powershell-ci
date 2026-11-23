@@ -6,6 +6,8 @@ This file summarizes the release notes for powershell-ci. **UNRELEASED** changes
 
 ### Added
 
+- powershell-ci now has an MIT `LICENSE`. Dependency Review in projects that pin this release no longer reports an unknown license for the reusable workflows.
+
 ### Changed
 
 ### Deprecated

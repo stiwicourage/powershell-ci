@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- An MIT `LICENSE` file, so GitHub and Dependency Review recognize the license of powershell-ci instead of reporting an unknown license.
+
 ### Changed
 
 ### Deprecated
