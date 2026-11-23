@@ -8,10 +8,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
-- `tests.yml` input `release-branch` (default `main`) and the new `check-unreleased-entries` action. Pull requests into the release branch now fail when a file in `changelog-files` has no entries under `[Unreleased]`, instead of the release failing after the merge.
-- The repository's own `ci.yml` runs the same check for pull requests into `main`.
-- An MIT `LICENSE` file, so GitHub and Dependency Review recognize the license of powershell-ci instead of reporting an unknown license.
-
 ### Changed
 
 ### Deprecated
@@ -21,6 +17,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Fixed
 
 ### Security
+
+## [0.6.1] - 2026-11-23
+
+### Added
+
+- `tests.yml` input `release-branch` (default `main`) and the new `check-unreleased-entries` action. Pull requests into the release branch now fail when a file in `changelog-files` has no entries under `[Unreleased]`, instead of the release failing after the merge.
+- The repository's own `ci.yml` runs the same check for pull requests into `main`.
+- An MIT `LICENSE` file, so GitHub and Dependency Review recognize the license of powershell-ci instead of reporting an unknown license.
 
 ## [0.6.0] - 2026-11-22
 
@@ -137,7 +141,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - `scripts/Set-InternalActionRefs.ps1` to pin the internal action references to a release ref.
 - Repository CI in `ci.yml` (Pester on Linux, Windows and macOS plus actionlint) and `release.yml`, which uses SemanticRelease to infer the next version from Conventional Commits into `version.json`, creates a verified release commit, annotated tag and GitHub release on `main`, and prepares `develop` for the next preview version.
 
-[Unreleased]: https://github.com/stiwicourage/powershell-ci/compare/0.6.0...HEAD
+[Unreleased]: https://github.com/stiwicourage/powershell-ci/compare/0.6.1...HEAD
+[0.6.1]: https://github.com/stiwicourage/powershell-ci/compare/0.6.0...0.6.1
 [0.6.0]: https://github.com/stiwicourage/powershell-ci/compare/0.5.0...0.6.0
 [0.5.0]: https://github.com/stiwicourage/powershell-ci/compare/0.4.0...0.5.0
 [0.4.0]: https://github.com/stiwicourage/powershell-ci/compare/0.3.0...0.4.0

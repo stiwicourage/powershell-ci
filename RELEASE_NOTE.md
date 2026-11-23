@@ -6,9 +6,6 @@ This file summarizes the release notes for powershell-ci. **UNRELEASED** changes
 
 ### Added
 
-- `tests.yml` now fails a pull request into `main` when a file in `changelog-files` has no entries under `[Unreleased]`, because the release stops on an empty section. Add the entries in the pull request. Set `release-branch` if your release branch is not `main`.
-- powershell-ci now has an MIT `LICENSE`. Dependency Review in projects that pin this release no longer reports an unknown license for the reusable workflows.
-
 ### Changed
 
 ### Deprecated
@@ -18,6 +15,13 @@ This file summarizes the release notes for powershell-ci. **UNRELEASED** changes
 ### Fixed
 
 ### Security
+
+## [0.6.1] - 2026-11-23
+
+### Added
+
+- `tests.yml` now fails a pull request into `main` when a file in `changelog-files` has no entries under `[Unreleased]`, because the release stops on an empty section. Add the entries in the pull request. Set `release-branch` if your release branch is not `main`.
+- powershell-ci now has an MIT `LICENSE`. Dependency Review in projects that pin this release no longer reports an unknown license for the reusable workflows.
 
 ## [0.6.0] - 2026-11-22
 
