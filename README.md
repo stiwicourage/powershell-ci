@@ -1,5 +1,8 @@
 # powershell-ci
 
+[![Tag](https://img.shields.io/github/v/tag/stiwicourage/powershell-ci)](https://github.com/stiwicourage/powershell-ci/tags)
+[![OpenSSF Best Practices](https://www.bestpractices.dev/projects/17041/badge)](https://www.bestpractices.dev/projects/17041)
+
 Shared GitHub Actions for the PowerShell projects (NovaModuleTools, GerberCore,
 Gerber, KeepAChangelog, SemanticRelease, PSModuleUpdate, Gerber.AzureDevOps).
 The goal is one place to fix CI so projects stop drifting apart.

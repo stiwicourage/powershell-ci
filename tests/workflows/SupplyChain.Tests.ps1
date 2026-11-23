@@ -52,6 +52,12 @@ Describe 'OpenSSF Best Practices documentation' {
         Test-Path (Join-Path $root ".github/ISSUE_TEMPLATE/$_") | Should -BeTrue
     }
 
+    It 'shows the tag version and OpenSSF Best Practices badges at the top of the README' {
+        $lines = Get-Content (Join-Path $root 'README.md') -TotalCount 4
+        ($lines -join "`n") | Should -Match '\[!\[Tag\]\(https://img\.shields\.io/github/v/tag/stiwicourage/powershell-ci[^)]*\)\]\(https://github\.com/stiwicourage/powershell-ci/tags\)'
+        ($lines -join "`n") | Should -Match '\[!\[OpenSSF Best Practices\]\(https://www\.bestpractices\.dev/projects/17041/badge\)\]\(https://www\.bestpractices\.dev/projects/17041\)'
+    }
+
     It 'links the community files and the input reference from the README' {
         $text = Get-Content (Join-Path $root 'README.md') -Raw
         $text | Should -Match '\(CONTRIBUTING\.md\)'
