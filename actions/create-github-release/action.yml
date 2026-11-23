@@ -9,6 +9,10 @@ inputs:
     description: Markdown file with the release text. Empty, missing or blank uses "Version <tag> has been released."
     required: false
     default: ''
+  assets:
+    description: Space separated files attached to the release, for example an archive and its Sigstore bundle.
+    required: false
+    default: ''
   token:
     description: Token with contents write permission.
     required: false
@@ -23,5 +27,6 @@ runs:
         GH_REPO: ${{ github.repository }}
         TAG_NAME: ${{ inputs.tag-name }}
         NOTES_FILE: ${{ inputs.notes-file }}
+        ASSETS: ${{ inputs.assets }}
       run: |
-        & "${{ github.action_path }}/Publish-GitHubRelease.ps1" -TagName $env:TAG_NAME -NotesFile $env:NOTES_FILE
+        & "${{ github.action_path }}/Publish-GitHubRelease.ps1" -TagName $env:TAG_NAME -NotesFile $env:NOTES_FILE -AssetPath @($env:ASSETS -split '\s+' | Where-Object { $_ })

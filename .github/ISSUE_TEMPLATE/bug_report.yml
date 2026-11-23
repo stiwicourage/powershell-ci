@@ -1,0 +1,28 @@
+name: Bug report
+description: Report a problem in a reusable workflow, action or script.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: For security problems, follow SECURITY.md instead of opening an issue.
+  - type: input
+    id: component
+    attributes:
+      label: Workflow or action
+      placeholder: tests.yml, nova-test, release.yml
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: powershell-ci tag
+      placeholder: 0.6.1
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect, and what happened?
+      description: Include the failing step and a link to the run when possible.
+    validations:
+      required: true

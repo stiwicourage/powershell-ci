@@ -32,6 +32,20 @@ Describe 'Publish-GitHubRelease' {
         $ghFake.Arguments | Should -Be @('release', 'create', '1.2.3', '--title', '1.2.3', '--verify-tag', '--notes', 'Version 1.2.3 has been released.')
     }
 
+    It 'attaches every release asset after the notes' {
+        $asset = Join-Path $TestDrive 'asset.zip'
+        $signature = Join-Path $TestDrive 'asset.zip.sigstore.json'
+        'zip', 'bundle' | ForEach-Object { $_ } | Set-Content -LiteralPath $asset
+        'bundle' | Set-Content -LiteralPath $signature
+        & $scriptPath -TagName '1.2.3' -NotesFile '' -AssetPath $asset, $signature
+        $ghFake.Arguments | Should -Be @('release', 'create', '1.2.3', '--title', '1.2.3', '--verify-tag', '--notes', 'Version 1.2.3 has been released.', $asset, $signature)
+    }
+
+    It 'fails before calling gh when an asset is missing' {
+        { & $scriptPath -TagName '1.2.3' -NotesFile '' -AssetPath (Join-Path $TestDrive 'missing.zip') } | Should -Throw '*missing.zip*does not exist*'
+        $ghFake.Arguments | Should -BeNullOrEmpty
+    }
+
     It 'marks prerelease versions as GitHub prereleases' {
         & $scriptPath -TagName '1.2.3-preview' -NotesFile ''
         $ghFake.Arguments | Should -Contain '--prerelease'

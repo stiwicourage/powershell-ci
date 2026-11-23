@@ -17,7 +17,7 @@ The goal is one place to fix CI so projects stop drifting apart.
 | `actions/create-verified-commit` | Verified release/prerelease commit |
 | `actions/update-git-ref` | Move a branch to a commit |
 | `actions/create-annotated-tag` | Annotated release tag |
-| `actions/create-github-release` | GitHub release for a tag, with text from a notes file or `Version <tag> has been released.` |
+| `actions/create-github-release` | GitHub release for a tag, with text from a notes file or `Version <tag> has been released.`, and optional `assets` |
 | `actions/ensure-psresource-repository` | Register the PSResource repository |
 | `.github/workflows/tests.yml` | Reusable test, coverage and CodeScene workflow |
 | `.github/workflows/publish.yml` | Reusable Nova build, release and prerelease publish workflow |
@@ -30,6 +30,21 @@ The goal is one place to fix CI so projects stop drifting apart.
 
 The actions were copied unchanged from NovaModuleTools; they were byte-identical
 in all six projects that had them.
+
+## Reference
+
+The inputs, defaults and outputs of every reusable workflow are declared in the
+`on.workflow_call` block of its file in `.github/workflows/`, and those of every
+action in `actions/<name>/action.yml`; each input has a `description`. The
+sections below explain the behavior that needs more than a description.
+
+## Contributing and support
+
+- Contribution process and requirements: [CONTRIBUTING.md](CONTRIBUTING.md)
+- Report bugs and request features: [issues](https://github.com/stiwicourage/powershell-ci/issues/new/choose)
+- Report vulnerabilities privately: [SECURITY.md](SECURITY.md)
+- Community expectations: [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)
+- License: [MIT](LICENSE)
 
 ## Using it
 
@@ -204,3 +219,16 @@ files and, for pull requests into `main`, entries under `[Unreleased]`); the oth
 Callers pin the tag, for example `@0.4.0`; Dependabot's `github-actions`
 ecosystem then proposes new tags. Create `1.0.0` only once the inputs and
 behavior are considered stable.
+
+## Verify a release
+
+Every GitHub release of powershell-ci contains `powershell-ci-<version>.zip` and a
+keyless Sigstore bundle signed by the release workflow:
+
+```bash
+cosign verify-blob \
+  --bundle powershell-ci-<version>.zip.sigstore.json \
+  --certificate-identity-regexp '^https://github.com/stiwicourage/powershell-ci/' \
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+  powershell-ci-<version>.zip
+```

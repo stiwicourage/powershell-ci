@@ -73,4 +73,36 @@ Describe 'Release workflow changelog and release-note contract' {
         $step | Should -Match 'notes-file: \$\{\{ steps.notes.outputs.notes_path \}\}'
         $step | Should -Not -Match 'generate-notes'
     }
+
+    It 'attaches the signed archive and its Sigstore bundle to the GitHub release' {
+        $step = Get-ReleaseStep -Name 'Create GitHub release'
+        $step | Should -Match 'assets: \$\{\{ steps.package.outputs.archive \}\} \$\{\{ steps.sign.outputs.bundle \}\}'
+    }
+}
+
+Describe 'Release workflow signing' {
+    It 'packages and signs the release commit between the develop push and the GitHub release' {
+        $push = [array]::IndexOf($stepNames, 'Push verified develop commit')
+        $package = [array]::IndexOf($stepNames, 'Package release assets')
+        $sign = [array]::IndexOf($stepNames, 'Sign release assets')
+        $package | Should -BeGreaterThan $push
+        $sign | Should -BeGreaterThan $package
+        $sign | Should -BeLessThan ([array]::IndexOf($stepNames, 'Create GitHub release'))
+    }
+
+    It 'archives the release commit and signs it keyless with cosign' {
+        $package = Get-ReleaseStep -Name 'Package release assets'
+        $package | Should -Match 'id: package'
+        $package | Should -Match 'git archive --format=zip'
+        $package | Should -Match "steps.version.outputs.needs_release == 'true'"
+        $sign = Get-ReleaseStep -Name 'Sign release assets'
+        $sign | Should -Match 'id: sign'
+        $sign | Should -Match 'cosign sign-blob --yes --bundle'
+        $release | Should -Match 'sigstore/cosign-installer@[0-9a-f]{40}'
+    }
+
+    It 'lets only the release job request an OIDC token' {
+        $release | Should -Match '(?m)^jobs:\n  release:\n    permissions:\n(?:      [^\n]+\n)*      id-token: write'
+        $release | Should -Not -Match '(?m)^permissions:\n(?:  [^\n]+\n)*  id-token'
+    }
 }

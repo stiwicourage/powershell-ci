@@ -53,8 +53,7 @@ on:
         required: true
 
 permissions:
-  contents: write
-  actions: write
+  contents: read
 
 defaults:
   run:
@@ -62,6 +61,9 @@ defaults:
 
 jobs:
   publish:
+    permissions:
+      contents: write
+      actions: write
     if: >-
       ${{
         github.event_name != 'push' ||
@@ -70,12 +72,12 @@ jobs:
     runs-on: ${{ inputs.runner }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           fetch-depth: 0
 
       - name: Check out powershell-ci actions
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           repository: ${{ job.workflow_repository }}
           ref: ${{ job.workflow_sha }}
