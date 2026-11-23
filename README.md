@@ -79,6 +79,13 @@ GitHub release text is the released `RELEASE_NOTE.md` section; projects without
 `RELEASE_NOTE.md` (or with an empty section) get `Version <version> has been
 released.`
 
+## Using it securely
+
+Read [Using powershell-ci securely](docs/USING-SECURELY.md): pin tags or SHAs,
+grant least-privilege permissions and pass credentials only as secrets. Start with
+[Getting started](docs/GETTING-STARTED.md). Verify a release as described in
+[Verify a release](#verify-a-release).
+
 ## What stays in each project
 
 The workflows install modules with the bundled `actions/install-ps-modules`

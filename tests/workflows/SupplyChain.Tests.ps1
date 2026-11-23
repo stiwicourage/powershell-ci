@@ -59,6 +59,21 @@ Describe 'OpenSSF Best Practices documentation' {
         $text | Should -Match '\(CODE_OF_CONDUCT\.md\)'
         $text | Should -Match '\(LICENSE\)'
         $text | Should -Match '(?i)## Reference'
+        $text | Should -Match '(?i)## Using it securely'
     }
 }
 
+Describe 'OpenSSF Best Practices docs folder' {
+    It 'documents <Topic> in docs/<File>' -ForEach @(
+        @{ Topic = 'installing, starting and using the workflows'; File = 'GETTING-STARTED.md'; Pattern = '(?s)(?=.*## Install)(?=.*## Start)(?=.*## Use)' }
+        @{ Topic = 'secure use'; File = 'USING-SECURELY.md'; Pattern = '(?s)(?=.*(?i)pin)(?=.*(?i)permissions)(?=.*(?i)secrets)' }
+    ) {
+        $text = Get-Content (Join-Path $root "docs/$File") -Raw
+        $text | Should -Match $Pattern
+    }
+
+    It 'links the docs folder from the README' {
+        (Get-Content (Join-Path $root 'README.md') -Raw) | Should -Match '\(docs/GETTING-STARTED\.md\)'
+        (Get-Content (Join-Path $root 'README.md') -Raw) | Should -Match '\(docs/USING-SECURELY\.md\)'
+    }
+}
