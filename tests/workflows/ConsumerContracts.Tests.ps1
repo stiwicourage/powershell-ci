@@ -41,6 +41,16 @@ Describe 'Shared opt-in workflow contracts' {
         $action | Should -Match '-Severity @\(\$env:SEVERITY -split'
     }
 
+    It 'checks [Unreleased] entries only for pull requests into the release branch' {
+        $workflow = Get-Content (Join-Path $root '.github/workflows/tests.yml') -Raw
+        $action = Get-Content (Join-Path $root 'actions/check-unreleased-entries/action.yml') -Raw
+        $workflow | Should -Match "release-branch:\s+description:[^\n]+\s+type: string\s+default: main"
+        $workflow | Should -Match "github.event_name == 'pull_request' && github.base_ref == inputs.release-branch"
+        $workflow | Should -Match 'uses: \./\.powershell-ci/actions/check-unreleased-entries'
+        $workflow | Should -Match 'files: \$\{\{ inputs.changelog-files \}\}'
+        $action | Should -Match 'Test-UnreleasedEntries\.ps1'
+    }
+
     It 'feeds the existing analyzer version input into isolated dependency selection' {
         $text = Get-Content (Join-Path $root '.github/workflows/tests.yml') -Raw
         $text | Should -Match 'script-analyzer-required-version: \$\{\{ inputs.script-analyzer-required-version \}\}'

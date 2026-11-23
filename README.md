@@ -9,6 +9,7 @@ The goal is one place to fix CI so projects stop drifting apart.
 | Path | Purpose |
 | --- | --- |
 | `actions/check-coverage` | CodeScene coverage gates |
+| `actions/check-unreleased-entries` | Fail when a changelog file has no entries under `[Unreleased]`, which would stop the release |
 | `actions/codescene-analysis` | Upload coverage and trigger a CodeScene analysis (bundles the scripts) |
 | `actions/install-ps-modules` | Install PowerShell modules, registering PSGallery when the runner lacks it |
 | `actions/script-analyzer` | Run PSScriptAnalyzer over the project; local wrappers call the same script via a sibling `powershell-ci` checkout or `POWERSHELL_CI_PATH` |
@@ -51,6 +52,10 @@ grouped weekly pull request. The config excludes powershell-ci from
 Dependabot's default 3-day cooldown, so a new tag is proposed on the next run.
 Pin released tags, not `@develop`, so Dependabot can update them. The full onboarding checklist is in
 `.github/instructions/consumer-onboarding.instructions.md`.
+
+`tests.yml` fails pull requests into the release branch (`release-branch`, default
+`main`) when a file in `changelog-files` has no entries under `[Unreleased]`, so
+the problem is found before the release instead of when it runs.
 
 On the release branch `publish.yml` moves `[Unreleased]` in `CHANGELOG.md` and,
 when present, `RELEASE_NOTE.md` into the released version, creates the release
@@ -192,8 +197,8 @@ Contributors add every caller-visible change under `[Unreleased]` in
 same pull request; see `.github/instructions/release-policy.instructions.md`.
 
 The repository's own checks live in `.github/workflows/ci.yml` (Pester on all
-three operating systems, actionlint and Keep a Changelog validation of both
-files); the other workflows are reusable
+three operating systems, actionlint, Keep a Changelog validation of both
+files and, for pull requests into `main`, entries under `[Unreleased]`); the other workflows are reusable
 (`workflow_call`) and only run when a project calls them.
 
 Callers pin the tag, for example `@0.4.0`; Dependabot's `github-actions`

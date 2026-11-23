@@ -55,6 +55,10 @@ on:
         description: Space separated changelog files validated with Test-KeepAChangelogFile. Empty skips the step.
         type: string
         default: ./CHANGELOG.md
+      release-branch:
+        description: Branch that produces stable releases. Pull requests into it must have entries under [Unreleased] in changelog-files.
+        type: string
+        default: main
       artifact-name:
         description: Name of the uploaded CI artifact bundle.
         type: string
@@ -185,6 +189,12 @@ jobs:
               throw "Validation failed for $path$([Environment]::NewLine)$errors"
             }
           }
+
+      - name: Require [Unreleased] entries before release
+        if: ${{ inputs.changelog-files != '' && github.event_name == 'pull_request' && github.base_ref == inputs.release-branch }}
+        uses: ./.powershell-ci/actions/check-unreleased-entries
+        with:
+          files: ${{ inputs.changelog-files }}
 
       - name: Upload CI artifacts
         if: always()

@@ -8,6 +8,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- `tests.yml` input `release-branch` (default `main`) and the new `check-unreleased-entries` action. Pull requests into the release branch now fail when a file in `changelog-files` has no entries under `[Unreleased]`, instead of the release failing after the merge.
+- The repository's own `ci.yml` runs the same check for pull requests into `main`.
+- An MIT `LICENSE` file, so GitHub and Dependency Review recognize the license of powershell-ci instead of reporting an unknown license.
+
 ### Changed
 
 ### Deprecated

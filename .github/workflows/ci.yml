@@ -52,6 +52,12 @@ jobs:
         with:
           modules: KeepAChangelog
 
+      - name: Require [Unreleased] entries before release
+        if: ${{ github.event_name == 'pull_request' && github.base_ref == 'main' }}
+        uses: ./actions/check-unreleased-entries
+        with:
+          files: ./CHANGELOG.md ./RELEASE_NOTE.md
+
       - name: Validate CHANGELOG.md and RELEASE_NOTE.md
         run: |
           foreach ($path in './CHANGELOG.md', './RELEASE_NOTE.md') {
