@@ -41,6 +41,20 @@ jobs:
           $config.Output.Verbosity = 'Minimal'
           Invoke-Pester -Configuration $config
 
+  quality:
+    permissions:
+      contents: read
+      actions: read
+    uses: ./.github/workflows/tests.yml
+    with:
+      install-modules: Pester KeepAChangelog
+      script-analyzer-enabled: false
+      test-command: ./scripts/Invoke-PesterCoverage.ps1
+      changelog-files: ''
+      codescene-enabled: true
+    secrets:
+      CS_ACCESS_TOKEN: ${{ secrets.CS_ACCESS_TOKEN }}
+
   changelog:
     runs-on: ubuntu-latest
     steps:

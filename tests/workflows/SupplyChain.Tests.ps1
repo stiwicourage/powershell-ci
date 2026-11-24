@@ -31,6 +31,12 @@ Describe 'OpenSSF Scorecard readiness' {
         $text | Should -Match 'id-token: write'
     }
 
+    It 'runs Scorecard only on the default branch' {
+        $text = Get-Content (Join-Path $root '.github/workflows/scorecard.yml') -Raw
+        $text | Should -Match '(?m)^\s+- develop\s*$'
+        $text | Should -Not -Match '(?m)^\s+- main\s*$'
+    }
+
     It 'ships a security policy and a Dependabot config for GitHub Actions' {
         Test-Path (Join-Path $root 'SECURITY.md') | Should -BeTrue
         $dependabot = Get-Content (Join-Path $root '.github/dependabot.yml') -Raw

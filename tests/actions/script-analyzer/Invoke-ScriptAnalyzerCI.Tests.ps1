@@ -324,3 +324,120 @@ Describe 'Invoke-ScriptAnalyzerCI script process behavior' {
         $output | Should -Match 'required but could not be imported'
     }
 }
+
+Describe 'Invoke-ScriptAnalyzerCI in-process contracts' {
+    BeforeEach {
+        $script:savedRoot = $env:POWERSHELL_CI_MODULE_ROOT
+        $script:savedVersion = $script:RequiredPSScriptAnalyzerVersion
+        $script:savedLocation = (Get-Location).Path
+        $env:POWERSHELL_CI_MODULE_ROOT = $null
+    }
+
+    AfterEach {
+        $env:POWERSHELL_CI_MODULE_ROOT = $savedRoot
+        $script:RequiredPSScriptAnalyzerVersion = $savedVersion
+        Set-Location -LiteralPath $savedLocation
+    }
+
+    Describe 'Analyzer module import' {
+        It 'imports PSScriptAnalyzer by name when no isolated root is active' {
+            Mock Import-Module {}
+            Mock Get-Module { [pscustomobject]@{ Version = [version]'1.25.0' } } -ParameterFilter { $Name -eq 'PSScriptAnalyzer' }
+            Import-ScriptAnalyzerModule | Should -Be ([version]'1.25.0')
+            Should -Invoke Import-Module -Exactly -Times 1 -ParameterFilter { $Name -eq 'PSScriptAnalyzer' }
+        }
+
+        It 'wraps an import failure with the missing-analyzer message' {
+            Mock Import-CiAnalyzerDependency { throw 'no such module' }
+            { Import-ScriptAnalyzerModule } | Should -Throw '*could not be imported. no such module*'
+        }
+
+        It 'fails when the import succeeded but the module is not loaded' {
+            Mock Import-CiAnalyzerDependency {}
+            Mock Get-Module { $null }
+            { Import-ScriptAnalyzerModule } | Should -Throw '*did not load the module*'
+        }
+    }
+
+    Describe 'Analyzer version pin' {
+        It 'accepts any version when none is pinned' {
+            $script:RequiredPSScriptAnalyzerVersion = $null
+            { Confirm-ScriptAnalyzerVersion -AnalyzerVersion ([version]'9.9.9') } | Should -Not -Throw
+        }
+
+        It 'accepts the pinned version' {
+            $script:RequiredPSScriptAnalyzerVersion = [version]'1.25.0'
+            { Confirm-ScriptAnalyzerVersion -AnalyzerVersion ([version]'1.25.0') } | Should -Not -Throw
+        }
+
+        It 'rejects a different version than the pin' {
+            $script:RequiredPSScriptAnalyzerVersion = [version]'1.25.0'
+            { Confirm-ScriptAnalyzerVersion -AnalyzerVersion ([version]'1.26.0') } | Should -Throw '*1.26.0 is installed, but version 1.25.0 is required*'
+        }
+    }
+
+    Describe 'Input discovery and results' {
+        It 'returns the full path of a single file input' {
+            $file = Join-Path $TestDrive 'Single.ps1'
+            Set-Content -LiteralPath $file -Value 'Get-Date'
+            @(Get-ScriptAnalyzerInputPathList -Path $file -RepositoryRoot $TestDrive) | Should -Be @([IO.Path]::GetFullPath($file))
+        }
+
+        It 'returns no input for a missing path' {
+            @(Get-ScriptAnalyzerInputPathList -Path (Join-Path $TestDrive 'absent') -RepositoryRoot $TestDrive) | Should -BeNullOrEmpty
+        }
+
+        It 'analyzes every path and concatenates the results' {
+            Mock Invoke-ScriptAnalyzerWithTransientRetry { @("finding for $Path") }
+            @(Get-ScriptAnalyzerResultList -AnalysisPathList @('a.ps1', 'b.ps1')) | Should -Be @('finding for a.ps1', 'finding for b.ps1')
+        }
+
+        It 'reports the repository root chosen at startup' {
+            Get-ScriptAnalyzerRepositoryRoot | Should -BeExactly $script:ScriptAnalyzerProjectRoot
+        }
+
+        It 'refuses to continue when no files were found' {
+            { Assert-ScriptAnalyzerInput -PathList @() -RepositoryRoot '/repo' } | Should -Throw "*No PowerShell files were found to analyze under '/repo'*"
+        }
+    }
+
+    Describe 'Report output' {
+        It 'writes the report text to the requested path' {
+            $path = Join-Path $TestDrive 'report.txt'
+            Write-ScriptAnalyzerReport -Path $path -FindingList @() -AnalyzedFileCount 3
+            (Get-Content -LiteralPath $path -Raw) | Should -Match 'Analyzed files: 3'
+        }
+
+        It 'resolves a relative report directory against the repository root' {
+            $path = Write-CiAnalyzerReport -Directory 'out/reports' -Root $TestDrive -Findings @() -Count 1
+            $path | Should -BeExactly (Join-Path $TestDrive 'out/reports/scriptanalyzer.txt')
+            Test-Path -LiteralPath $path | Should -BeTrue
+        }
+    }
+
+    Describe 'Script entry point' {
+        BeforeEach {
+            $script:repo = Join-Path $TestDrive ([guid]::NewGuid().ToString('N'))
+            $null = New-Item -ItemType Directory -Path "$repo/src" -Force
+            Set-Content -LiteralPath "$repo/src/Sample.ps1" -Value "function Get-Sample { 'ok' }"
+            Mock Import-Module {}
+            Mock Get-Module { [pscustomobject]@{ Version = [version]'1.25.0' } } -ParameterFilter { $Name -eq 'PSScriptAnalyzer' }
+            Mock Invoke-ScriptAnalyzer { @() }
+        }
+
+        It 'uses the working directory and default analysis paths and reports success' {
+            Set-Location -LiteralPath $repo
+            $output = @(& $scriptPath -OutputDirectory (Join-Path $TestDrive 'default-out') -RequiredVersion 1.25.0)
+            $output[-1] | Should -BeLike 'PSScriptAnalyzer: 0 findings across 1 file(s) with PSScriptAnalyzer 1.25.0.'
+            $LASTEXITCODE | Should -Be 0
+            Should -Invoke Invoke-ScriptAnalyzer -Exactly -Times 1 -ParameterFilter { ($ExcludeRule -join ',') -eq 'PSAvoidUsingWriteHost' }
+        }
+
+        It 'raises the finding failure instead of reporting success' {
+            Mock Invoke-ScriptAnalyzer { Get-FakeScriptAnalyzerResult -PropertyOverrides @{ RelativePath = 'src/Sample.ps1' } }
+            $out = Join-Path $TestDrive 'failure-out'
+            { & $scriptPath -ProjectRoot $repo -OutputDirectory $out -ErrorAction Stop } | Should -Throw '*reported 1 finding(s)*'
+            Test-Path -LiteralPath (Join-Path $out 'scriptanalyzer.txt') | Should -BeTrue
+        }
+    }
+}

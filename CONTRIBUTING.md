@@ -36,6 +36,7 @@ signed archives are listed on the
 - Pin every external action to a full commit SHA with a version comment, and keep
   workflow permissions read-only at the top level.
 - PowerShell must pass PSScriptAnalyzer without findings.
+- CodeScene checks code health and coverage on pull requests. Maintainers configure the `CS_ACCESS_TOKEN` secret and the `CS_URL` and `CS_PROJECT_ID` variables; run `./scripts/Invoke-PesterCoverage.ps1` to produce `artifacts/coverage.xml` locally.
 - Follow the [code of conduct](CODE_OF_CONDUCT.md).
 
 Contributions are released under the [MIT license](LICENSE).

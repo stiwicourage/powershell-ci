@@ -292,7 +292,7 @@ function Invoke-ScriptAnalyzerCI {
 
     $repositoryRoot = Get-ScriptAnalyzerRepositoryRoot
     $analyzerVersion = Get-ConfirmedScriptAnalyzerVersion
-    $analysisPathList = Get-ScriptAnalyzerAnalysisPathList -RepositoryRoot $repositoryRoot
+    $analysisPathList = @(Get-ScriptAnalyzerAnalysisPathList -RepositoryRoot $repositoryRoot)
     Assert-ScriptAnalyzerInput -PathList $analysisPathList -RepositoryRoot $repositoryRoot
     $findingList = @(Get-CiAnalyzerFinding -PathList $analysisPathList -RepositoryRoot $repositoryRoot)
     $reportPath = Write-CiAnalyzerReport -Directory $OutputDirectory -Root $repositoryRoot -Findings $findingList -Count $analysisPathList.Count
