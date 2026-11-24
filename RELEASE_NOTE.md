@@ -19,6 +19,7 @@ This file summarizes the release notes for powershell-ci. **UNRELEASED** changes
 
 ### Fixed
 
+- The release helper actions no longer trigger the Node 20 deprecation warning.
 - The script-analyzer action no longer fails when your repository has exactly one PowerShell file to analyze.
 
 ### Security

@@ -108,12 +108,12 @@ Describe 'Release workflow signing' {
 }
 
 Describe 'Release workflow ruleset bypass' {
-    It 'creates a pinned GitHub App token only when RELEASE_APP_ID is configured' {
+    It 'creates a pinned GitHub App token only when RELEASE_APP_CLIENT_ID is configured' {
         $step = Get-ReleaseStep -Name 'Create release app token'
         $step | Should -Match 'id: app_token'
-        $step | Should -Match "if: \$\{\{ vars\.RELEASE_APP_ID != '' \}\}"
+        $step | Should -Match "if: \$\{\{ vars\.RELEASE_APP_CLIENT_ID != '' \}\}"
         $step | Should -Match 'actions/create-github-app-token@[0-9a-f]{40} # v'
-        $step | Should -Match 'app-id: \$\{\{ vars\.RELEASE_APP_ID \}\}'
+        $step | Should -Match 'client-id: \$\{\{ vars\.RELEASE_APP_CLIENT_ID \}\}'
         $step | Should -Match 'private-key: \$\{\{ secrets\.RELEASE_APP_PRIVATE_KEY \}\}'
         $stepNames.IndexOf('Create release app token') | Should -BeLessThan $stepNames.IndexOf('Push verified release commit')
     }
@@ -122,5 +122,18 @@ Describe 'Release workflow ruleset bypass' {
         foreach ($name in 'Push verified release commit', 'Push verified develop commit') {
             Get-ReleaseStep -Name $name | Should -Match 'token: \$\{\{ steps\.app_token\.outputs\.token \|\| github\.token \}\}'
         }
+    }
+}
+
+Describe 'Release automation runtimes' {
+    It 'uses actions/github-script on the Node 24 runtime in every composite action' {
+        $uses = Get-ChildItem (Join-Path (Split-Path -Parent (Split-Path -Parent $PSScriptRoot)) 'actions') -Recurse -Filter action.yml |
+            Select-String -Pattern 'actions/github-script@[0-9a-f]{40} # (v\S+)'
+        $uses | Should -Not -BeNullOrEmpty
+        foreach ($match in $uses) { [int]($match.Matches[0].Groups[1].Value.TrimStart('v').Split('.')[0]) | Should -BeGreaterOrEqual 8 }
+    }
+
+    It 'does not use the deprecated app-id input' {
+        $release | Should -Not -Match '(?m)^\s+app-id:'
     }
 }
