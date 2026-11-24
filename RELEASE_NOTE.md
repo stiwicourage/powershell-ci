@@ -8,8 +8,6 @@ This file summarizes the release notes for powershell-ci. **UNRELEASED** changes
 
 ### Changed
 
-- The README is easier to read, with a table of contents and unwrapped paragraphs.
-
 ### Deprecated
 
 ### Removed
@@ -17,6 +15,12 @@ This file summarizes the release notes for powershell-ci. **UNRELEASED** changes
 ### Fixed
 
 ### Security
+
+## [0.8.2] - 2026-11-24
+
+### Changed
+
+- The README is easier to read, with a table of contents and unwrapped paragraphs.
 
 ## [0.8.1] - 2026-11-24
 

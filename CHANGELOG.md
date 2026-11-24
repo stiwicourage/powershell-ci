@@ -10,8 +10,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
-- The README is easier to read: it has a table of contents, the contents table is split into workflows, actions and other files, and paragraphs are no longer hard-wrapped.
-
 ### Deprecated
 
 ### Removed
@@ -19,6 +17,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Fixed
 
 ### Security
+
+## [0.8.2] - 2026-11-24
+
+### Changed
+
+- The README is easier to read: it has a table of contents, the contents table is split into workflows, actions and other files, and paragraphs are no longer hard-wrapped.
 
 ## [0.8.1] - 2026-11-24
 
@@ -178,7 +182,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - `scripts/Set-InternalActionRefs.ps1` to pin the internal action references to a release ref.
 - Repository CI in `ci.yml` (Pester on Linux, Windows and macOS plus actionlint) and `release.yml`, which uses SemanticRelease to infer the next version from Conventional Commits into `version.json`, creates a verified release commit, annotated tag and GitHub release on `main`, and prepares `develop` for the next preview version.
 
-[Unreleased]: https://github.com/stiwicourage/powershell-ci/compare/0.8.1...HEAD
+[Unreleased]: https://github.com/stiwicourage/powershell-ci/compare/0.8.2...HEAD
+[0.8.2]: https://github.com/stiwicourage/powershell-ci/compare/0.8.1...0.8.2
 [0.8.1]: https://github.com/stiwicourage/powershell-ci/compare/0.8.0...0.8.1
 [0.8.0]: https://github.com/stiwicourage/powershell-ci/compare/0.7.0...0.8.0
 [0.7.0]: https://github.com/stiwicourage/powershell-ci/compare/0.6.1...0.7.0
