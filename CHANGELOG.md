@@ -12,7 +12,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
-- The `update-git-ref` action accepts a `token` input, and `release.yml` uses a GitHub App token (variable `RELEASE_APP_ID`, secret `RELEASE_APP_PRIVATE_KEY`) for branch updates when configured, so the release can bypass a ruleset that requires pull requests.
+- The `update-git-ref` action accepts a `token` input, and `release.yml` uses a GitHub App token (variable `RELEASE_APP_CLIENT_ID`, secret `RELEASE_APP_PRIVATE_KEY`) for branch updates when configured, so the release can bypass a ruleset that requires pull requests.
 - The Scorecard workflow uses `ossf/scorecard-action` v2.5.0 until the v2.6.0 container image, whose manifests were removed from ghcr.io, can be pulled again.
 
 ### Deprecated
@@ -21,6 +21,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- The release helper actions run `actions/github-script` v9.0.0 on Node 24, which removes the Node 20 deprecation warning.
 - The script-analyzer action no longer fails with a missing `Count` property when exactly one PowerShell file is analyzed.
 
 ### Security
