@@ -8,12 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
-- powershell-ci's own CI now runs its Pester tests through the shared `tests.yml` workflow with JaCoCo coverage (`scripts/Invoke-PesterCoverage.ps1`), so pull requests get the CodeScene coverage gate and `develop` pushes trigger a CodeScene analysis, like the projects that call powershell-ci.
-
 ### Changed
-
-- The `update-git-ref` action accepts a `token` input, and `release.yml` uses a GitHub App token (variable `RELEASE_APP_CLIENT_ID`, secret `RELEASE_APP_PRIVATE_KEY`) for branch updates when configured, so the release can bypass a ruleset that requires pull requests.
-- The Scorecard workflow uses `ossf/scorecard-action` v2.5.0 until the v2.6.0 container image, whose manifests were removed from ghcr.io, can be pulled again.
 
 ### Deprecated
 
@@ -21,10 +16,23 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+### Security
+
+## [0.8.0] - 2026-11-24
+
+### Added
+
+- powershell-ci's own CI now runs its Pester tests through the shared `tests.yml` workflow with JaCoCo coverage (`scripts/Invoke-PesterCoverage.ps1`), so pull requests get the CodeScene coverage gate and `develop` pushes trigger a CodeScene analysis, like the projects that call powershell-ci.
+
+### Changed
+
+- The `update-git-ref` action accepts a `token` input, and `release.yml` uses a GitHub App token (variable `RELEASE_APP_CLIENT_ID`, secret `RELEASE_APP_PRIVATE_KEY`) for branch updates when configured, so the release can bypass a ruleset that requires pull requests.
+- The Scorecard workflow uses `ossf/scorecard-action` v2.5.0 until the v2.6.0 container image, whose manifests were removed from ghcr.io, can be pulled again.
+
+### Fixed
+
 - The release helper actions run `actions/github-script` v9.0.0 on Node 24, which removes the Node 20 deprecation warning.
 - The script-analyzer action no longer fails with a missing `Count` property when exactly one PowerShell file is analyzed.
-
-### Security
 
 ## [0.7.0] - 2026-11-24
 
@@ -162,7 +170,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - `scripts/Set-InternalActionRefs.ps1` to pin the internal action references to a release ref.
 - Repository CI in `ci.yml` (Pester on Linux, Windows and macOS plus actionlint) and `release.yml`, which uses SemanticRelease to infer the next version from Conventional Commits into `version.json`, creates a verified release commit, annotated tag and GitHub release on `main`, and prepares `develop` for the next preview version.
 
-[Unreleased]: https://github.com/stiwicourage/powershell-ci/compare/0.7.0...HEAD
+[Unreleased]: https://github.com/stiwicourage/powershell-ci/compare/0.8.0...HEAD
+[0.8.0]: https://github.com/stiwicourage/powershell-ci/compare/0.7.0...0.8.0
 [0.7.0]: https://github.com/stiwicourage/powershell-ci/compare/0.6.1...0.7.0
 [0.6.1]: https://github.com/stiwicourage/powershell-ci/compare/0.6.0...0.6.1
 [0.6.0]: https://github.com/stiwicourage/powershell-ci/compare/0.5.0...0.6.0
