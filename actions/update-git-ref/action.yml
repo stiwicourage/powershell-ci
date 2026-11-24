@@ -12,6 +12,10 @@ inputs:
     description: Whether to force-update the ref.
     required: false
     default: 'false'
+  token:
+    description: Token with contents write permission, for example a GitHub App token that may bypass branch rules.
+    required: false
+    default: ${{ github.token }}
 
 runs:
   using: composite
@@ -22,6 +26,7 @@ runs:
         TARGET_SHA: ${{ inputs.sha }}
         FORCE_UPDATE: ${{ inputs.force }}
       with:
+        github-token: ${{ inputs.token }}
         script: |
           const owner = context.repo.owner
           const repo = context.repo.repo
