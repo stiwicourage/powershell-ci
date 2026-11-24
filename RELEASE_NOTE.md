@@ -6,9 +6,6 @@ This file summarizes the release notes for powershell-ci. **UNRELEASED** changes
 
 ### Added
 
-- GitHub releases now include `powershell-ci-<version>.zip` with a Sigstore signature bundle. Verify it with `cosign verify-blob --bundle <zip>.sigstore.json --certificate-identity-regexp '^https://github.com/stiwicourage/powershell-ci/' --certificate-oidc-issuer https://token.actions.githubusercontent.com <zip>`. Callers keep pinning the tag.
-- powershell-ci now publishes an OpenSSF Scorecard, has a `SECURITY.md` and pins all external actions to commit SHAs. No caller changes are needed.
-
 ### Changed
 
 ### Deprecated
@@ -18,6 +15,13 @@ This file summarizes the release notes for powershell-ci. **UNRELEASED** changes
 ### Fixed
 
 ### Security
+
+## [0.7.0] - 2026-11-24
+
+### Added
+
+- GitHub releases now include `powershell-ci-<version>.zip` with a Sigstore signature bundle. Verify it with `cosign verify-blob --bundle <zip>.sigstore.json --certificate-identity-regexp '^https://github.com/stiwicourage/powershell-ci/' --certificate-oidc-issuer https://token.actions.githubusercontent.com <zip>`. Callers keep pinning the tag.
+- powershell-ci now publishes an OpenSSF Scorecard, has a `SECURITY.md` and pins all external actions to commit SHAs. No caller changes are needed.
 
 ## [0.6.1] - 2026-11-23
 

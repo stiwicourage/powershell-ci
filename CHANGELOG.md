@@ -8,14 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
-- `release.yml` attaches `powershell-ci-<version>.zip` (actions, workflows and examples of the release commit) and its keyless Sigstore bundle `powershell-ci-<version>.zip.sigstore.json` to every GitHub release, and the `create-github-release` action accepts `assets`.
-- A `docs/` folder with getting-started and secure-use documentation, linked from the README.
-- `CONTRIBUTING.md`, bug-report and feature-request issue forms and README sections for the input reference and for contributing and support, for the OpenSSF Best Practices badge.
-- A `scorecard.yml` workflow that publishes the OpenSSF Scorecard result and uploads it to code scanning, a `SECURITY.md` policy and a `dependabot.yml` for the repository's own GitHub Actions.
-
 ### Changed
-
-- Every external action in `.github/workflows/` and `actions/` is pinned to a full commit SHA, and `publish.yml`, `release.yml` and `dependency-review.yml` grant write permissions per job instead of at workflow level. Callers need no change.
 
 ### Deprecated
 
@@ -24,6 +17,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Fixed
 
 ### Security
+
+## [0.7.0] - 2026-11-24
+
+### Added
+
+- `release.yml` attaches `powershell-ci-<version>.zip` (actions, workflows and examples of the release commit) and its keyless Sigstore bundle `powershell-ci-<version>.zip.sigstore.json` to every GitHub release, and the `create-github-release` action accepts `assets`.
+- A `docs/` folder with getting-started and secure-use documentation, linked from the README.
+- `CONTRIBUTING.md`, bug-report and feature-request issue forms and README sections for the input reference and for contributing and support, for the OpenSSF Best Practices badge.
+- A `scorecard.yml` workflow that publishes the OpenSSF Scorecard result and uploads it to code scanning, a `SECURITY.md` policy and a `dependabot.yml` for the repository's own GitHub Actions.
+
+### Changed
+
+- Every external action in `.github/workflows/` and `actions/` is pinned to a full commit SHA, and `publish.yml`, `release.yml` and `dependency-review.yml` grant write permissions per job instead of at workflow level. Callers need no change.
 
 ## [0.6.1] - 2026-11-23
 
@@ -148,7 +154,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - `scripts/Set-InternalActionRefs.ps1` to pin the internal action references to a release ref.
 - Repository CI in `ci.yml` (Pester on Linux, Windows and macOS plus actionlint) and `release.yml`, which uses SemanticRelease to infer the next version from Conventional Commits into `version.json`, creates a verified release commit, annotated tag and GitHub release on `main`, and prepares `develop` for the next preview version.
 
-[Unreleased]: https://github.com/stiwicourage/powershell-ci/compare/0.6.1...HEAD
+[Unreleased]: https://github.com/stiwicourage/powershell-ci/compare/0.7.0...HEAD
+[0.7.0]: https://github.com/stiwicourage/powershell-ci/compare/0.6.1...0.7.0
 [0.6.1]: https://github.com/stiwicourage/powershell-ci/compare/0.6.0...0.6.1
 [0.6.0]: https://github.com/stiwicourage/powershell-ci/compare/0.5.0...0.6.0
 [0.5.0]: https://github.com/stiwicourage/powershell-ci/compare/0.4.0...0.5.0
