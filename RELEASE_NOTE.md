@@ -6,12 +6,7 @@ This file summarizes the release notes for powershell-ci. **UNRELEASED** changes
 
 ### Added
 
-- powershell-ci now checks its own code quality and test coverage with CodeScene in pull requests and on `develop`. No caller changes are needed.
-
 ### Changed
-
-- `update-git-ref` accepts an optional `token` input (default `github.token`), for example a GitHub App token that may bypass branch rules. No caller changes are needed.
-- powershell-ci's own Scorecard workflow uses `ossf/scorecard-action` v2.5.0 because the v2.6.0 image cannot currently be pulled. No caller changes are needed.
 
 ### Deprecated
 
@@ -20,10 +15,25 @@ This file summarizes the release notes for powershell-ci. **UNRELEASED** changes
 ### Fixed
 
 - powershell-ci's own release commits no longer trigger extra workflow runs.
-- The release helper actions no longer trigger the Node 20 deprecation warning.
-- The script-analyzer action no longer fails when your repository has exactly one PowerShell file to analyze.
 
 ### Security
+
+## [0.8.0] - 2026-11-24
+
+### Added
+
+- powershell-ci now checks its own code quality and test coverage with CodeScene in pull requests and on `develop`. No caller changes are needed.
+
+### Changed
+
+- `update-git-ref` accepts an optional `token` input (default `github.token`), for example a GitHub App token that may bypass branch rules. No caller changes are needed.
+- powershell-ci's own Scorecard workflow uses `ossf/scorecard-action` v2.5.0 because the v2.6.0 image cannot currently be pulled. No caller changes are needed.
+
+### Fixed
+
+- powershell-ci's own release commits no longer trigger extra workflow runs.
+- The release helper actions no longer trigger the Node 20 deprecation warning.
+- The script-analyzer action no longer fails when your repository has exactly one PowerShell file to analyze.
 
 ## [0.7.0] - 2026-11-24
 
