@@ -79,7 +79,7 @@ jobs:
         uses: ./actions/create-verified-commit
         with:
           base-ref: main
-          commit-message: 'chore(release): ${{ steps.version.outputs.version }}'
+          commit-message: 'chore(release): ${{ steps.version.outputs.version }} [skip ci]'
 
       - name: Create release app token
         id: app_token
@@ -124,7 +124,7 @@ jobs:
         uses: ./actions/create-verified-commit
         with:
           base-ref: main
-          commit-message: 'chore: prepare develop for next prerelease'
+          commit-message: 'chore: prepare develop for next prerelease [skip ci]'
 
       - name: Push verified develop commit
         if: ${{ steps.version.outputs.needs_release == 'true' && steps.commit_develop.outputs.has-changes == 'true' }}

@@ -21,6 +21,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- The release commits pushed with the GitHub App token carry `[skip ci]`, so they no longer start extra workflow runs.
 - The release helper actions run `actions/github-script` v9.0.0 on Node 24, which removes the Node 20 deprecation warning.
 - The script-analyzer action no longer fails with a missing `Count` property when exactly one PowerShell file is analyzed.
 
