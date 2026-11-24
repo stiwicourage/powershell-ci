@@ -10,6 +10,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
+- The README is easier to read: it has a table of contents, the contents table is split into workflows, actions and other files, and paragraphs are no longer hard-wrapped.
+
 ### Deprecated
 
 ### Removed
