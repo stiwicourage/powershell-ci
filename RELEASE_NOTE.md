@@ -6,6 +6,8 @@ This file summarizes the release notes for powershell-ci. **UNRELEASED** changes
 
 ### Added
 
+- powershell-ci now checks its own code quality and test coverage with CodeScene in pull requests and on `develop`. No caller changes are needed.
+
 ### Changed
 
 ### Deprecated

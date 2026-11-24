@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- powershell-ci's own CI now runs its Pester tests through the shared `tests.yml` workflow with JaCoCo coverage (`scripts/Invoke-PesterCoverage.ps1`), so pull requests get the CodeScene coverage gate and `develop` pushes trigger a CodeScene analysis, like the projects that call powershell-ci.
+
 ### Changed
 
 ### Deprecated
