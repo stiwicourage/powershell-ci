@@ -12,6 +12,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
+- The `update-git-ref` action accepts a `token` input, and `release.yml` uses a GitHub App token (variable `RELEASE_APP_ID`, secret `RELEASE_APP_PRIVATE_KEY`) for branch updates when configured, so the release can bypass a ruleset that requires pull requests.
 - The Scorecard workflow uses `ossf/scorecard-action` v2.5.0 until the v2.6.0 container image, whose manifests were removed from ghcr.io, can be pulled again.
 
 ### Deprecated

@@ -106,3 +106,21 @@ Describe 'Release workflow signing' {
         $release | Should -Not -Match '(?m)^permissions:\n(?:  [^\n]+\n)*  id-token'
     }
 }
+
+Describe 'Release workflow ruleset bypass' {
+    It 'creates a pinned GitHub App token only when RELEASE_APP_ID is configured' {
+        $step = Get-ReleaseStep -Name 'Create release app token'
+        $step | Should -Match 'id: app_token'
+        $step | Should -Match "if: \$\{\{ vars\.RELEASE_APP_ID != '' \}\}"
+        $step | Should -Match 'actions/create-github-app-token@[0-9a-f]{40} # v'
+        $step | Should -Match 'app-id: \$\{\{ vars\.RELEASE_APP_ID \}\}'
+        $step | Should -Match 'private-key: \$\{\{ secrets\.RELEASE_APP_PRIVATE_KEY \}\}'
+        $stepNames.IndexOf('Create release app token') | Should -BeLessThan $stepNames.IndexOf('Push verified release commit')
+    }
+
+    It 'pushes both branch updates with the app token and falls back to GITHUB_TOKEN' {
+        foreach ($name in 'Push verified release commit', 'Push verified develop commit') {
+            Get-ReleaseStep -Name $name | Should -Match 'token: \$\{\{ steps\.app_token\.outputs\.token \|\| github\.token \}\}'
+        }
+    }
+}

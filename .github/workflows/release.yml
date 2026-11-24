@@ -81,12 +81,21 @@ jobs:
           base-ref: main
           commit-message: 'chore(release): ${{ steps.version.outputs.version }}'
 
+      - name: Create release app token
+        id: app_token
+        if: ${{ vars.RELEASE_APP_ID != '' }}
+        uses: actions/create-github-app-token@f418cff399f7aef4c2f0ad47e25ca7a6abbdd6fc # v3.4.0
+        with:
+          app-id: ${{ vars.RELEASE_APP_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+
       - name: Push verified release commit
         if: ${{ steps.version.outputs.needs_release == 'true' && steps.commit_release.outputs.has-changes == 'true' }}
         uses: ./actions/update-git-ref
         with:
           ref: refs/heads/main
           sha: ${{ steps.commit_release.outputs.commit-sha }}
+          token: ${{ steps.app_token.outputs.token || github.token }}
 
       - name: Create annotated release tag
         if: ${{ steps.version.outputs.needs_release == 'true' }}
@@ -123,6 +132,7 @@ jobs:
         with:
           ref: refs/heads/develop
           sha: ${{ steps.commit_develop.outputs.commit-sha }}
+          token: ${{ steps.app_token.outputs.token || github.token }}
           force: 'true'
 
       - name: Package release assets

@@ -10,6 +10,7 @@ This file summarizes the release notes for powershell-ci. **UNRELEASED** changes
 
 ### Changed
 
+- `update-git-ref` accepts an optional `token` input (default `github.token`), for example a GitHub App token that may bypass branch rules. No caller changes are needed.
 - powershell-ci's own Scorecard workflow uses `ossf/scorecard-action` v2.5.0 because the v2.6.0 image cannot currently be pulled. No caller changes are needed.
 
 ### Deprecated

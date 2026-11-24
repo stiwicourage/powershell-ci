@@ -37,6 +37,7 @@ signed archives are listed on the
   workflow permissions read-only at the top level.
 - PowerShell must pass PSScriptAnalyzer without findings.
 - CodeScene checks code health and coverage on pull requests. Maintainers configure the `CS_ACCESS_TOKEN` secret and the `CS_URL` and `CS_PROJECT_ID` variables; run `./scripts/Invoke-PesterCoverage.ps1` to produce `artifacts/coverage.xml` locally.
+- If a ruleset requires pull requests on `main` or `develop`, maintainers create a GitHub App with Contents write access, add it to the ruleset bypass list, and set the `RELEASE_APP_ID` variable and `RELEASE_APP_PRIVATE_KEY` secret so `release.yml` can update the branches.
 - Follow the [code of conduct](CODE_OF_CONDUCT.md).
 
 Contributions are released under the [MIT license](LICENSE).
