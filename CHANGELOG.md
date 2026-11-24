@@ -12,11 +12,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
+- The Scorecard workflow uses `ossf/scorecard-action` v2.5.0 until the v2.6.0 container image, whose manifests were removed from ghcr.io, can be pulled again.
+
 ### Deprecated
 
 ### Removed
 
 ### Fixed
+
+- The script-analyzer action no longer fails with a missing `Count` property when exactly one PowerShell file is analyzed.
 
 ### Security
 

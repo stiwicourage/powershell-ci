@@ -17,9 +17,12 @@ $config.Run.Path = Join-Path $ProjectRoot 'tests'
 $config.Run.Exit = $true
 $config.Output.Verbosity = 'Minimal'
 $config.CodeCoverage.Enabled = $true
+# This runner executes the tests, so it cannot be measured by them.
 $config.CodeCoverage.Path = @(
     Join-Path $ProjectRoot 'actions'
-    Join-Path $ProjectRoot 'scripts'
+    Get-ChildItem -LiteralPath (Join-Path $ProjectRoot 'scripts') -Filter '*.ps1' -File |
+        Where-Object Name -NE $MyInvocation.MyCommand.Name |
+        ForEach-Object FullName
 )
 $config.CodeCoverage.RecursePaths = $true
 $config.CodeCoverage.OutputFormat = 'JaCoCo'

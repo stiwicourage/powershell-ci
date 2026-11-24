@@ -88,3 +88,30 @@ Describe 'Owned isolated dependency roots' {
         Test-Path $owner.Path | Should -BeFalse
     }
 }
+
+Describe 'Dependency root guard rails' {
+    It 'refuses to create a root over an existing path' {
+        $path = Join-Path $TestDrive 'powershell-ci-modules-existing'
+        $null = New-Item -ItemType Directory -Path $path
+        { New-CiDependencyRoot -Path $path } | Should -Throw '*already exists*'
+    }
+
+    It 'refuses a root whose name lacks the owned prefix' {
+        { New-CiDependencyRoot -Path (Join-Path $TestDrive 'unrelated-directory') } | Should -Throw '*expected powershell-ci-modules- prefix*'
+        Test-Path (Join-Path $TestDrive 'unrelated-directory') | Should -BeFalse
+    }
+
+    It 'does not read ownership from a directory without the owned prefix' {
+        $path = Join-Path $TestDrive 'plain'
+        $null = New-Item -ItemType Directory -Path $path
+        { Get-CiDependencyOwner -Path $path } | Should -Throw '*Invalid dependency root name*'
+    }
+
+    It 'rejects an owned root that is reached through a filesystem link' -Skip:$IsWindows {
+        $owner = New-CiDependencyRoot -Path (Join-Path $TestDrive 'powershell-ci-modules-real')
+        $link = Join-Path $TestDrive 'powershell-ci-modules-link'
+        $null = New-Item -ItemType SymbolicLink -Path $link -Target $owner.Path
+        { Get-CiDependencyOwner -Path $link } | Should -Throw '*cannot traverse a filesystem link*'
+        Test-Path $owner.Path | Should -BeTrue
+    }
+}
