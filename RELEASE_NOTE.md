@@ -8,6 +8,8 @@ This file summarizes the release notes for powershell-ci. **UNRELEASED** changes
 
 ### Changed
 
+- The README is easier to read, with a table of contents and unwrapped paragraphs.
+
 ### Deprecated
 
 ### Removed
