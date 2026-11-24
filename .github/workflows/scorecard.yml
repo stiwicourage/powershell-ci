@@ -6,7 +6,6 @@ on:
     - cron: '23 4 * * 1'
   push:
     branches:
-      - main
       - develop
   workflow_dispatch:
 

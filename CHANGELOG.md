@@ -25,7 +25,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - `release.yml` attaches `powershell-ci-<version>.zip` (actions, workflows and examples of the release commit) and its keyless Sigstore bundle `powershell-ci-<version>.zip.sigstore.json` to every GitHub release, and the `create-github-release` action accepts `assets`.
 - A `docs/` folder with getting-started and secure-use documentation, linked from the README.
 - `CONTRIBUTING.md`, bug-report and feature-request issue forms and README sections for the input reference and for contributing and support, for the OpenSSF Best Practices badge.
-- A `scorecard.yml` workflow that publishes the OpenSSF Scorecard result and uploads it to code scanning, a `SECURITY.md` policy and a `dependabot.yml` for the repository's own GitHub Actions.
+- A `scorecard.yml` workflow that publishes the OpenSSF Scorecard result for the default branch and uploads it to code scanning, a `SECURITY.md` policy and a `dependabot.yml` for the repository's own GitHub Actions.
 
 ### Changed
 
