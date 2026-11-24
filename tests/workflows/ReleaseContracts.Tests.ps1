@@ -137,3 +137,10 @@ Describe 'Release automation runtimes' {
         $release | Should -Not -Match '(?m)^\s+app-id:'
     }
 }
+
+Describe 'Release workflow commits pushed with the app token' {
+    It 'marks both commits [skip ci] so the app token does not start new workflow runs' {
+        Get-ReleaseStep -Name 'Create verified release commit' | Should -Match "commit-message: 'chore\(release\): \$\{\{ steps\.version\.outputs\.version \}\} \[skip ci\]'"
+        Get-ReleaseStep -Name 'Create verified develop commit' | Should -Match "commit-message: 'chore: prepare develop for next prerelease \[skip ci\]'"
+    }
+}

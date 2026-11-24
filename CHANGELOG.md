@@ -16,6 +16,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- The release commits pushed with the GitHub App token carry `[skip ci]`, so they no longer start extra workflow runs.
+
 ### Security
 
 ## [0.8.0] - 2026-11-24

@@ -14,6 +14,8 @@ This file summarizes the release notes for powershell-ci. **UNRELEASED** changes
 
 ### Fixed
 
+- powershell-ci's own release commits no longer trigger extra workflow runs.
+
 ### Security
 
 ## [0.8.0] - 2026-11-24
@@ -29,6 +31,7 @@ This file summarizes the release notes for powershell-ci. **UNRELEASED** changes
 
 ### Fixed
 
+- powershell-ci's own release commits no longer trigger extra workflow runs.
 - The release helper actions no longer trigger the Node 20 deprecation warning.
 - The script-analyzer action no longer fails when your repository has exactly one PowerShell file to analyze.
 
