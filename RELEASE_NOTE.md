@@ -14,9 +14,13 @@ This file summarizes the release notes for powershell-ci. **UNRELEASED** changes
 
 ### Fixed
 
-- powershell-ci's own release commits no longer trigger extra workflow runs.
-
 ### Security
+
+## [0.8.1] - 2026-11-24
+
+### Fixed
+
+- powershell-ci's own release commits no longer trigger extra workflow runs.
 
 ## [0.8.0] - 2026-11-24
 

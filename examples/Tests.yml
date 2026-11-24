@@ -18,7 +18,7 @@ permissions:
 
 jobs:
   tests:
-    uses: stiwicourage/powershell-ci/.github/workflows/tests.yml@0.8.0
+    uses: stiwicourage/powershell-ci/.github/workflows/tests.yml@0.8.1
     with:
       script-analyzer-enabled: true
       # test-isolation: process  # run each Nova test command in a fresh PowerShell process

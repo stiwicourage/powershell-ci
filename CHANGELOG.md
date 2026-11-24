@@ -16,9 +16,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
-- The release commits pushed with the GitHub App token carry `[skip ci]`, so they no longer start extra workflow runs.
-
 ### Security
+
+## [0.8.1] - 2026-11-24
+
+### Fixed
+
+- The release commits pushed with the GitHub App token carry `[skip ci]`, so they no longer start extra workflow runs.
 
 ## [0.8.0] - 2026-11-24
 
@@ -172,7 +176,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - `scripts/Set-InternalActionRefs.ps1` to pin the internal action references to a release ref.
 - Repository CI in `ci.yml` (Pester on Linux, Windows and macOS plus actionlint) and `release.yml`, which uses SemanticRelease to infer the next version from Conventional Commits into `version.json`, creates a verified release commit, annotated tag and GitHub release on `main`, and prepares `develop` for the next preview version.
 
-[Unreleased]: https://github.com/stiwicourage/powershell-ci/compare/0.8.0...HEAD
+[Unreleased]: https://github.com/stiwicourage/powershell-ci/compare/0.8.1...HEAD
+[0.8.1]: https://github.com/stiwicourage/powershell-ci/compare/0.8.0...0.8.1
 [0.8.0]: https://github.com/stiwicourage/powershell-ci/compare/0.7.0...0.8.0
 [0.7.0]: https://github.com/stiwicourage/powershell-ci/compare/0.6.1...0.7.0
 [0.6.1]: https://github.com/stiwicourage/powershell-ci/compare/0.6.0...0.6.1
