@@ -4,7 +4,9 @@ param(
     [string]$TagName,
 
     [AllowEmptyString()]
-    [string]$NotesFile = ''
+    [string]$NotesFile = '',
+
+    [string[]]$AssetPath = @()
 )
 
 Set-StrictMode -Version Latest
@@ -21,11 +23,23 @@ function Get-ReleaseNotesArgument {
     return @('--notes', "Version $Tag has been released.")
 }
 
+function Assert-AssetExists {
+    param([string[]]$Path)
+
+    foreach ($asset in $Path) {
+        if (-not (Test-Path -LiteralPath $asset -PathType Leaf)) {
+            throw "Release asset '$asset' does not exist."
+        }
+    }
+}
+
+Assert-AssetExists -Path $AssetPath
 $arguments = @('release', 'create', $TagName, '--title', $TagName, '--verify-tag')
 $arguments += Get-ReleaseNotesArgument -Tag $TagName -Path $NotesFile
 if ($TagName -match '-') {
     $arguments += '--prerelease'
 }
+$arguments += $AssetPath
 
 gh @arguments
 if ($LASTEXITCODE -ne 0) {

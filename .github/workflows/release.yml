@@ -7,8 +7,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
-  actions: write
+  contents: read
 
 defaults:
   run:
@@ -16,6 +15,10 @@ defaults:
 
 jobs:
   release:
+    permissions:
+      contents: write
+      actions: write
+      id-token: write
     if: >-
       ${{
         github.event_name != 'push' ||
@@ -24,7 +27,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
 
@@ -122,9 +125,37 @@ jobs:
           sha: ${{ steps.commit_develop.outputs.commit-sha }}
           force: 'true'
 
+      - name: Package release assets
+        id: package
+        if: ${{ steps.version.outputs.needs_release == 'true' }}
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+          RELEASE_SHA: ${{ steps.commit_release.outputs.has-changes == 'true' && steps.commit_release.outputs.commit-sha || github.sha }}
+        run: |
+          $archive = Join-Path $env:RUNNER_TEMP "powershell-ci-$env:VERSION.zip"
+          git archive --format=zip --prefix="powershell-ci-$env:VERSION/" -o $archive $env:RELEASE_SHA actions .github/workflows examples
+          if ($LASTEXITCODE -ne 0) { throw "git archive failed for $env:RELEASE_SHA." }
+          "archive=$archive" >> $env:GITHUB_OUTPUT
+
+      - name: Install cosign
+        if: ${{ steps.version.outputs.needs_release == 'true' }}
+        uses: sigstore/cosign-installer@756fe2d284c7292c4e9b62c8a28f1e5629c59532 # v4.1.3
+
+      - name: Sign release assets
+        id: sign
+        if: ${{ steps.version.outputs.needs_release == 'true' }}
+        env:
+          ARCHIVE: ${{ steps.package.outputs.archive }}
+        run: |
+          $bundle = "$env:ARCHIVE.sigstore.json"
+          cosign sign-blob --yes --bundle $bundle $env:ARCHIVE
+          if ($LASTEXITCODE -ne 0) { throw "cosign could not sign $env:ARCHIVE." }
+          "bundle=$bundle" >> $env:GITHUB_OUTPUT
+
       - name: Create GitHub release
         if: ${{ steps.version.outputs.needs_release == 'true' }}
         uses: ./actions/create-github-release
         with:
           tag-name: ${{ steps.version.outputs.version }}
           notes-file: ${{ steps.notes.outputs.notes_path }}
+          assets: ${{ steps.package.outputs.archive }} ${{ steps.sign.outputs.bundle }}
